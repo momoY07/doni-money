@@ -8,11 +8,14 @@ class CategoryStore {
   static const defaultExpenseCategories = [
     '🍔 Food', '☕ Coffee', '🛒 Grocery', '🚌 Transport',
     '🛍️ Shopping', '🧾 Bills', '🎬 Entertainment', '💊 Health',
-    '🎁 Gift', '✈️ Travel', '📱 Phone', '🚗 Car', '🏠 Home', '🧾 Other',
+    '🎁 Gift', '✈️ Travel', '📱 Phone', '🚗 Car', '🏠 Home',
+    '🔑 Rent', '👶 Baby', '⚡ Electricity', '💧 Water',
+    '🔥 Gas', '🏢 Maintenance', '📶 Internet', '📈 Investment',
+    '🧾 Other',
   ];
 
   static const defaultIncomeCategories = [
-    '💼 Salary', '🎁 Gift', '🧾 Other',
+    '💼 Salary', '🎁 Gift', '📈 Investment', '🧾 Other',
   ];
 
   static List<String> expenseCategories() =>
