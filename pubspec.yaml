@@ -2,7 +2,7 @@ name: simple_ledger
 description: "Doni Money - Simple and beautiful finance tracker"
 publish_to: 'none'
 
-version: 1.0.0+6
+version: 1.0.1+8
 
 environment:
   sdk: ^3.11.1
@@ -23,6 +23,7 @@ dependencies:
   in_app_purchase: ^3.2.3
   flutter_dynamic_icon: ^2.1.0
   url_launcher: ^6.3.2
+  in_app_review: ^2.0.9
 
 dev_dependencies:
   flutter_test:

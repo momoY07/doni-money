@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:in_app_review/in_app_review.dart';
 
 import '../utils/i18n.dart';
 import '../theme/app_theme.dart';
@@ -1166,6 +1167,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 SnackBar(content: Text(t('paywall_nothing_to_restore', language))),
               );
             }
+          },
+        ),
+        const SizedBox(height: 10),
+        _actionTile(
+          leading: Icon(Icons.star_rounded, color: _primaryDark),
+          title: t('rate_the_app', language),
+          subtitle: 'App Store',
+          onTap: () async {
+            await InAppReview.instance.openStoreListing(appStoreId: '6771136993');
           },
         ),
         const SizedBox(height: 18),

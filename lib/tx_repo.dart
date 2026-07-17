@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:in_app_review/in_app_review.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'storage.dart';
 
 class TxRepo extends ChangeNotifier {
@@ -92,6 +94,25 @@ class TxRepo extends ChangeNotifier {
     list.insert(0, jsonEncode(normalizedItem));
     await Storage.txBox.put('items', list);
     notifyListeners();
+
+    _maybeRequestReview();
+  }
+
+  Future<void> _maybeRequestReview() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyRequested = prefs.getBool('review_requested') ?? false;
+    if (alreadyRequested) return;
+
+    final count = (prefs.getInt('transaction_count_for_review') ?? 0) + 1;
+    await prefs.setInt('transaction_count_for_review', count);
+
+    if (count == 10) {
+      await prefs.setBool('review_requested', true);
+      final inAppReview = InAppReview.instance;
+      if (await inAppReview.isAvailable()) {
+        await inAppReview.requestReview();
+      }
+    }
   }
 
   Future<void> clear() async {
