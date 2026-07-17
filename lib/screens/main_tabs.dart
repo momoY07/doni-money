@@ -856,6 +856,18 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
 
     final cumulativeBalance = calculateCumulativeBalance(tx, selectedMonth);
 
+    // 저번 달 경계 계산 (1월이면 전년 12월로 정확히 넘어감)
+    final prevYear = selectedMonth.month == 1 ? selectedMonth.year - 1 : selectedMonth.year;
+    final prevMonth = selectedMonth.month == 1 ? 12 : selectedMonth.month - 1;
+    final prevMonthIncome = tx
+        .where((x) => !x.isExpense && x.date.year == prevYear && x.date.month == prevMonth)
+        .fold(0.0, (sum, x) => sum + x.amount);
+    final prevMonthExpense = tx
+        .where((x) => x.isExpense && x.date.year == prevYear && x.date.month == prevMonth)
+        .fold(0.0, (sum, x) => sum + x.amount);
+    final carryoverEnabled = Storage.txBox.get('balance_carryover_enabled', defaultValue: true) as bool;
+    final carryover = carryoverEnabled ? (prevMonthIncome - prevMonthExpense) : 0.0;
+
     final pages = [
       HomePage(
         income: monthIncome,
@@ -881,6 +893,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         monthlyBudget: _monthlyBudget,
         selectedTheme: selectedTheme,
         cumulativeBalance: cumulativeBalance,
+        carryover: carryover,
       ),
       TransactionsPage(
         items: tx,

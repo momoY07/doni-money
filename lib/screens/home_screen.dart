@@ -25,6 +25,7 @@ class HomePage extends StatelessWidget {
   final double monthlyBudget;
   final String selectedTheme;
   final double cumulativeBalance;
+  final double carryover;
 
   const HomePage({
     super.key,
@@ -45,6 +46,7 @@ class HomePage extends StatelessWidget {
     this.monthlyBudget = 0,
     required this.selectedTheme,
     required this.cumulativeBalance,
+    this.carryover = 0.0,
   });
 
   String _formatMoney(double amount) {
@@ -128,6 +130,45 @@ class HomePage extends StatelessWidget {
           Text(
             value,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _textPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarryoverRow(BuildContext context) {
+    final isPositive = carryover >= 0;
+    final sign = isPositive ? '+' : '';
+    final color = isPositive ? const Color(0xFF179C63) : const Color(0xFFD94B3D);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isPositive
+            ? ((_isCA || _isMB) ? const Color(0xFF0A2A1A) : const Color(0xFFEFFAF5))
+            : ((_isCA || _isMB) ? const Color(0xFF2A0A0A) : const Color(0xFFFFF1F0)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isPositive
+              ? ((_isCA || _isMB) ? const Color(0xFF1A4A2A) : const Color(0xFFC3EAD8))
+              : ((_isCA || _isMB) ? const Color(0xFF4A1A1A) : const Color(0xFFEFCDCA)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isPositive ? Icons.arrow_circle_up_rounded : Icons.arrow_circle_down_rounded,
+            size: 18,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            t('carried_over', language),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color),
+          ),
+          const Spacer(),
+          Text(
+            '$sign${_formatMoney(carryover)}',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
           ),
         ],
       ),
@@ -498,6 +539,10 @@ class HomePage extends StatelessWidget {
                           ],
                         ),
                       ),
+                    if (carryover != 0.0) ...[
+                      const SizedBox(height: 10),
+                      _buildCarryoverRow(context),
+                    ],
                     if (monthlyBudget > 0) ...[
                       const SizedBox(height: 10),
                       _buildBudgetBar(context, expense),

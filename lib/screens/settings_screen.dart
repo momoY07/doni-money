@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
 
 import '../utils/i18n.dart';
+import '../storage.dart';
 import '../theme/app_theme.dart';
 import '../services/purchase_service.dart';
 import '../services/icon_service.dart';
@@ -651,6 +652,66 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _toggleTile({
+    required Widget leading,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: _isCA ? const Color(0xFF0F0F2A) : (_isMB ? const Color(0xFF1E1E1E) : Colors.white),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _isCA ? const Color(0xFF2A2A5A) : (_isMB ? const Color(0xFF333333) : _line)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: _isCA ? const Color(0xFF1A1A3A) : (_isMB ? const Color(0xFF2A2A2A) : _softBg),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(child: leading),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: (_isCA || _isMB) ? Colors.white : _textMain,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _isCA ? const Color(0xFF6B6B9A) : (_isMB ? const Color(0xFF888888) : _textSub),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: _primaryDark,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _actionTile({
     required Widget leading,
     required String title,
@@ -965,6 +1026,17 @@ class _SettingsPageState extends State<SettingsPage> {
               ? monthlyBudget.toStringAsFixed(2)
               : t('no_budget_set', language),
           onTap: () => showBudgetDialog(context),
+        ),
+        const SizedBox(height: 10),
+        _toggleTile(
+          leading: Icon(Icons.swap_horiz_rounded, color: _primaryDark),
+          title: t('balance_carryover', language),
+          subtitle: t('balance_carryover_desc', language),
+          value: Storage.txBox.get('balance_carryover_enabled', defaultValue: true) as bool,
+          onChanged: (v) {
+            Storage.txBox.put('balance_carryover_enabled', v);
+            setState(() {});
+          },
         ),
         const SizedBox(height: 18),
 
