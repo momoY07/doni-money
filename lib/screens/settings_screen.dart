@@ -359,8 +359,12 @@ class _SettingsPageState extends State<SettingsPage> {
     'recurring':      'assets/images/recurring_transactions.jpeg',
     'categories':     'assets/images/manage_categories.jpeg',
     'app_icon':       'assets/images/SD_app_icon.png',
-    'privacy':        'assets/images/privacy_policy.jpeg',
-    'clear':          'assets/images/clear_all_entries.jpeg',
+    'privacy':             'assets/images/privacy_policy.jpeg',
+    'clear':               'assets/images/clear_all_entries.jpeg',
+    'balance_carryover':   'assets/images/balance_carryover.png',
+    'rate_app':            'assets/images/rate_app.png',
+    'manage_subscription': 'assets/images/manage_subscription.png',
+    'restore_purchase':    'assets/images/restore_purchase.png',
   };
 
   static const _dogImgs = <String, String>{
@@ -377,8 +381,12 @@ class _SettingsPageState extends State<SettingsPage> {
     'recurring':      'assets/images/dog_theme/dog_recurring transactions.jpeg',
     'categories':     'assets/images/dog_theme/dog_manage_categories.jpeg',
     'app_icon':       'assets/images/dog_theme/dog_app_icon.png',
-    'privacy':        'assets/images/dog_theme/dog_privacy_policy.jpeg',
-    'clear':          'assets/images/dog_theme/dog_clear_all_entries.jpeg',
+    'privacy':             'assets/images/dog_theme/dog_privacy_policy.jpeg',
+    'clear':               'assets/images/dog_theme/dog_clear_all_entries.jpeg',
+    'balance_carryover':   'assets/images/dog_theme/dog_balance_carryover.png',
+    'rate_app':            'assets/images/dog_theme/dog_rate_app.png',
+    'manage_subscription': 'assets/images/dog_theme/dog_manage_subscription.png',
+    'restore_purchase':    'assets/images/dog_theme/dog_restore_purchase.png',
   };
 
   static const _cyImgs = <String, String>{
@@ -395,8 +403,12 @@ class _SettingsPageState extends State<SettingsPage> {
     'recurring':       'assets/images/cyber_ai/cy_recurring.png',
     'categories':      'assets/images/cyber_ai/cy_categories.png',
     'app_icon':        'assets/images/cyber_ai/cy_app_icon.png',
-    'privacy':         'assets/images/cyber_ai/cy_privacy.png',
-    'clear':           'assets/images/cyber_ai/cy_clear_all.png',
+    'privacy':             'assets/images/cyber_ai/cy_privacy.png',
+    'clear':               'assets/images/cyber_ai/cy_clear_all.png',
+    'balance_carryover':   'assets/images/cyber_ai/cy_balance_carryover.png',
+    'rate_app':            'assets/images/cyber_ai/cy_rate_app.png',
+    'manage_subscription': 'assets/images/cyber_ai/cy_manage_subscription.png',
+    'restore_purchase':    'assets/images/cyber_ai/cy_restore_purchase.png',
   };
 
   static const _mbImgs = <String, String>{
@@ -413,8 +425,12 @@ class _SettingsPageState extends State<SettingsPage> {
     'recurring':       'assets/images/minimal_black/mb_recurring.png',
     'categories':      'assets/images/minimal_black/mb_categories.png',
     'app_icon':        'assets/images/minimal_black/mb_app_icon.png',
-    'privacy':         'assets/images/minimal_black/mb_privacy.png',
-    'clear':           'assets/images/minimal_black/mb_clear_all.png',
+    'privacy':             'assets/images/minimal_black/mb_privacy.png',
+    'clear':               'assets/images/minimal_black/mb_clear_all.png',
+    'balance_carryover':   'assets/images/minimal_black/mb_balance_carryover.png',
+    'rate_app':            'assets/images/minimal_black/mb_rate_app.png',
+    'manage_subscription': 'assets/images/minimal_black/mb_manage_subscription.png',
+    'restore_purchase':    'assets/images/minimal_black/mb_restore_purchase.png',
   };
 
   Widget _img(String key) {
@@ -1029,7 +1045,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 10),
         _toggleTile(
-          leading: Icon(Icons.swap_horiz_rounded, color: _primaryDark),
+          leading: _img('balance_carryover'),
           title: t('balance_carryover', language),
           subtitle: t('balance_carryover_desc', language),
           value: Storage.txBox.get('balance_carryover_enabled', defaultValue: true) as bool,
@@ -1198,7 +1214,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
         _sectionTitle('Subscription'),
         _actionTile(
-          leading: Icon(Icons.card_membership_rounded, color: _primaryDark),
+          leading: _img('manage_subscription'),
           title: 'Manage Subscription',
           subtitle: 'Apple Subscriptions',
           onTap: () async {
@@ -1210,7 +1226,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 10),
         _actionTile(
-          leading: Icon(Icons.restore_rounded, color: _primaryDark),
+          leading: _img('restore_purchase'),
           title: t('paywall_restore', language),
           subtitle: t('paywall_restore', language),
           onTap: () async {
@@ -1243,7 +1259,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 10),
         _actionTile(
-          leading: Icon(Icons.star_rounded, color: _primaryDark),
+          leading: _img('rate_app'),
           title: t('rate_the_app', language),
           subtitle: 'App Store',
           onTap: () async {
