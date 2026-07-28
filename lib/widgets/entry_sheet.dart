@@ -25,7 +25,7 @@ class _EntrySheetState extends State<EntrySheet> {
   String category = '🍔 Food';
   DateTime selectedDate = DateTime.now();
   String selectedCurrency = 'USD';
-  String paymentMethod = 'cash';
+  String paymentMethod = 'card';
   bool _isCyberAI = false;
   bool _isOtter = false;
 
@@ -157,7 +157,7 @@ class _EntrySheetState extends State<EntrySheet> {
                     }
                     // 지출로 전환 시 bank는 지원하지 않으므로 cash로 초기화
                     if (isExpense && paymentMethod == 'bank') {
-                      paymentMethod = 'cash';
+                      paymentMethod = 'card';
                     }
                   });
                 },
@@ -168,6 +168,7 @@ class _EntrySheetState extends State<EntrySheet> {
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: category,
+                menuMaxHeight: 400,
                 items: currentCategories
                     .map(
                       (c) => DropdownMenuItem<String>(
@@ -199,12 +200,12 @@ class _EntrySheetState extends State<EntrySheet> {
               SegmentedButton<String>(
                 segments: [
                   ButtonSegment<String>(
-                    value: 'cash',
-                    label: Text(t('cash', widget.language)),
-                  ),
-                  ButtonSegment<String>(
                     value: 'card',
                     label: Text(t('card', widget.language)),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'cash',
+                    label: Text(t('cash', widget.language)),
                   ),
                   if (!isExpense)
                     ButtonSegment<String>(
