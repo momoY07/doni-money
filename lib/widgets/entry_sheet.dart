@@ -27,6 +27,7 @@ class _EntrySheetState extends State<EntrySheet> {
   String selectedCurrency = 'USD';
   String paymentMethod = 'cash';
   bool _isCyberAI = false;
+  bool _isOtter = false;
 
   @override
   void initState() {
@@ -34,7 +35,9 @@ class _EntrySheetState extends State<EntrySheet> {
 
     selectedCurrency =
         Storage.txBox.get('selectedCurrency', defaultValue: 'USD') as String;
-    _isCyberAI = (Storage.txBox.get('selectedTheme', defaultValue: '') as String) == 'cyber_ai';
+    final theme = Storage.txBox.get('selectedTheme', defaultValue: 'cream') as String;
+    _isCyberAI = theme == 'cyber_ai';
+    _isOtter = isOtterTheme(theme);
 
     final item = widget.initialItem;
     if (item == null) return;
@@ -171,12 +174,11 @@ class _EntrySheetState extends State<EntrySheet> {
                         value: c,
                         child: Row(
                           children: [
-                            if (_isCyberAI) ...[
-                              Image.asset(
-                                cyIconPath(c),
-                                width: 22,
-                                height: 22,
-                                fit: BoxFit.contain,
+                            if (_isCyberAI || _isOtter) ...[
+                              categoryIconWidget(
+                                rawCategory: c,
+                                isCyberAI: _isCyberAI,
+                                imageSize: 22,
                               ),
                               const SizedBox(width: 8),
                               Text(categoryTextNoEmoji(c, widget.language)),
