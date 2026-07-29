@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../storage.dart';
 
-// ─── cyber_ai ─────────────────────────────────────────────────────────────────
-// DO NOT MODIFY cyIconPath() — cyber_ai theme relies on this exact logic.
+// ─── cyber_ai (legacy) ────────────────────────────────────────────────────────
+// cyIconPath() is no longer called by categoryIconWidget.
+// Kept until cy_cat_*.png assets in assets/images/cyber_ai/ are cleaned up.
 String cyIconPath(String rawCategory) {
   final name = rawCategory.contains(' ')
       ? rawCategory.substring(rawCategory.indexOf(' ') + 1).toLowerCase()
@@ -22,8 +23,8 @@ String cyIconPath(String rawCategory) {
   return 'assets/images/cyber_ai/cy_cat_other_1.png';
 }
 
-// ─── categories PNG (otter & dog) ─────────────────────────────────────────────
-// Shared map — file names are identical across otter/ and dog/ folders.
+// ─── categories PNG (cyber / otter / dog) ─────────────────────────────────────
+// Shared map — file names are identical across cyber/, otter/, and dog/ folders.
 const Map<String, String> _catFileMap = {
   'Food': 'food',
   'Coffee': 'coffee',
@@ -50,11 +51,11 @@ const Map<String, String> _catFileMap = {
 };
 
 /// Returns the assets/images/categories/ subfolder for the given theme,
-/// or null if the theme uses emoji (minimal_black) or its own icon system (cyber_ai).
+/// or null if the theme uses emoji (minimal_black).
 /// Blacklist approach: unknown/future/default themes fall through to 'otter'.
 String? catFolderForTheme(String theme) {
-  if (theme == 'cyber_ai') return null;
   if (theme == 'minimal_black') return null;
+  if (theme == 'cyber_ai') return 'cyber';
   if (theme.contains('dog')) return 'dog';
   return 'otter';
 }
@@ -74,14 +75,6 @@ Widget categoryIconWidget({
   double emojiSize = 24,
   double imageSize = 28,
 }) {
-  if (isCyberAI) {
-    return Image.asset(
-      cyIconPath(rawCategory),
-      width: imageSize,
-      height: imageSize,
-      fit: BoxFit.contain,
-    );
-  }
   final theme =
       Storage.txBox.get('selectedTheme', defaultValue: 'cream') as String;
   final folder = catFolderForTheme(theme);
