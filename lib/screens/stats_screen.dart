@@ -879,7 +879,7 @@ class StatsPage extends StatelessWidget {
               LineChartData(
                 minX: 0,
                 maxX: 5,
-                minY: 0,
+                minY: minY < 0 ? yMin : 0,
                 maxY: yMax,
                 gridData: FlGridData(
                   show: true,
@@ -895,7 +895,11 @@ class StatsPage extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 44,
-                      interval: yMax > 0 ? yMax / 2 : 1.0,
+                      interval: () {
+                        final lo = minY < 0 ? yMin : 0;
+                        final range = yMax - lo;
+                        return range > 0 ? range / 4 : 1.0;
+                      }(),
                       getTitlesWidget: (value, meta) {
                         final labelColor = _isCA
                             ? const Color(0xFF6B6B9A)
@@ -952,6 +956,7 @@ class StatsPage extends StatelessWidget {
                     spots: spots,
                     isCurved: true,
                     curveSmoothness: 0.3,
+                    preventCurveOverShooting: true,
                     color: _isCA ? const Color(0xFF7B2FFF) : const Color(0xFF5F7FA3),
                     barWidth: 3,
                     isStrokeCapRound: true,
