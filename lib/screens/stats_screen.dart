@@ -1118,8 +1118,23 @@ class StatsPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // ── 월 선택기 ──────────────────────────────────────────────
         _buildHeaderCard(context, monthLabel),
         const SizedBox(height: 16),
+        // ── 지출 비율 ──────────────────────────────────────────────
+        if (!hasMixedCurrencies && sortedCategories.isNotEmpty) ...[
+          _buildCombinedDistributionCard(
+            context: context,
+            sortedCategories: sortedCategories,
+            totalExpense: expense,
+            monthItems: monthItems,
+          ),
+          const SizedBox(height: 16),
+        ],
+        // ── 자산 추이 ──────────────────────────────────────────────
+        _buildAssetTrendCard(context),
+        const SizedBox(height: 16),
+        // ── 수입 / 지출 카드 ────────────────────────────────────────
         if (hasMixedCurrencies) ...[
           buildMixedCurrencyNotice(
             language: language,
@@ -1156,6 +1171,7 @@ class StatsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          // ── 이번 달 잔액 ───────────────────────────────────────────
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -1231,6 +1247,7 @@ class StatsPage extends StatelessWidget {
           ),
         ] else
           _buildMixedCurrencySummaryCard(summaries: monthCurrencySummaries),
+        // ── 지난달 비교 ────────────────────────────────────────────
         if (canCompareDelta) const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
@@ -1278,7 +1295,8 @@ class StatsPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        if (!hasMixedCurrencies && sortedCategories.isNotEmpty) ...[
+        // ── 가장 많이 쓴 카테고리 ──────────────────────────────────
+        if (!hasMixedCurrencies && sortedCategories.isNotEmpty)
           InkWell(
             onTap: () async {
               await _showCategoryEntriesSheet(
@@ -1390,16 +1408,6 @@ class StatsPage extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _buildCombinedDistributionCard(
-            context: context,
-            sortedCategories: sortedCategories,
-            totalExpense: expense,
-            monthItems: monthItems,
-          ),
-        ],
-        const SizedBox(height: 16),
-        _buildAssetTrendCard(context),
       ],
     );
   }
