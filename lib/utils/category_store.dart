@@ -8,7 +8,7 @@ class CategoryStore {
   static const defaultExpenseCategories = [
     '🍔 Food', '☕ Coffee', '🛒 Grocery', '🚌 Transport',
     '🛍️ Shopping', '🧾 Bills', '🎬 Entertainment', '💊 Health',
-    '🎁 Gift', '✈️ Travel', '📱 Phone', '🚗 Car', '🏠 Home',
+    '🎁 Gift', '✈️ Travel', '📱 Phone', '🚗 Car',
     '🔑 Rent', '👶 Baby', '⚡ Electricity', '💧 Water',
     '🔥 Gas', '🏢 Maintenance', '📶 Internet', '📈 Investment',
     '🧾 Other',
