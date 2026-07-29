@@ -22,8 +22,9 @@ String cyIconPath(String rawCategory) {
   return 'assets/images/cyber_ai/cy_cat_other_1.png';
 }
 
-// ─── otter ────────────────────────────────────────────────────────────────────
-const Map<String, String> _otterCatMap = {
+// ─── categories PNG (otter & dog) ─────────────────────────────────────────────
+// Shared map — file names are identical across otter/ and dog/ folders.
+const Map<String, String> _catFileMap = {
   'Food': 'food',
   'Coffee': 'coffee',
   'Grocery': 'grocery',
@@ -48,19 +49,22 @@ const Map<String, String> _otterCatMap = {
   'Salary': 'salary',
 };
 
-/// Returns true for any theme that is not cyber_ai, minimal_black, or dog.
-/// Using blacklist so unknown/default values also resolve to otter.
-bool isOtterTheme(String theme) =>
-    theme != 'cyber_ai' &&
-    theme != 'minimal_black' &&
-    !theme.contains('dog');
+/// Returns the assets/images/categories/ subfolder for the given theme,
+/// or null if the theme uses emoji (minimal_black) or its own icon system (cyber_ai).
+/// Blacklist approach: unknown/future/default themes fall through to 'otter'.
+String? catFolderForTheme(String theme) {
+  if (theme == 'cyber_ai') return null;
+  if (theme == 'minimal_black') return null;
+  if (theme.contains('dog')) return 'dog';
+  return 'otter';
+}
 
-String otterIconPath(String rawCategory) {
+String catIconPath(String rawCategory, String folder) {
   final name = rawCategory.contains(' ')
       ? rawCategory.substring(rawCategory.indexOf(' ') + 1)
       : rawCategory;
-  final file = _otterCatMap[name] ?? 'other';
-  return 'assets/images/categories/otter/$file.png';
+  final file = _catFileMap[name] ?? 'other';
+  return 'assets/images/categories/$folder/$file.png';
 }
 
 // ─── shared widget ────────────────────────────────────────────────────────────
@@ -80,10 +84,11 @@ Widget categoryIconWidget({
   }
   final theme =
       Storage.txBox.get('selectedTheme', defaultValue: 'cream') as String;
-  if (isOtterTheme(theme)) {
+  final folder = catFolderForTheme(theme);
+  if (folder != null) {
     final emoji = rawCategory.split(' ').first;
     return Image.asset(
-      otterIconPath(rawCategory),
+      catIconPath(rawCategory, folder),
       width: imageSize,
       height: imageSize,
       fit: BoxFit.contain,
