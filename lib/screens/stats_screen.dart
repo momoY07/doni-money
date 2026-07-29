@@ -1360,9 +1360,7 @@ class StatsPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _isCA
-                                    ? categoryTextNoEmoji(sortedCategories.first.key, language)
-                                    : categoryText(sortedCategories.first.key, language),
+                                categoryTextNoEmoji(sortedCategories.first.key, language),
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800,

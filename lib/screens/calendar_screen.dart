@@ -903,7 +903,7 @@ class _DayRecordsSheet extends StatelessWidget {
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
-                            isCA ? categoryTextNoEmoji(x.category, language) : categoryText(x.category, language),
+                            categoryTextNoEmoji(x.category, language),
                             style: TextStyle(
                               fontSize: 13,
                               color: isCA ? const Color(0xFF6B6B9A) : (isMB ? const Color(0xFF888888) : const Color(0xFF75879A)),

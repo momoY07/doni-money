@@ -337,7 +337,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   x.note.isEmpty ? t('no_memo', widget.language) : x.note,
                 ),
                 subtitle: Text(
-                  '${widget.selectedTheme == 'cyber_ai' ? categoryTextNoEmoji(x.category, widget.language) : categoryText(x.category, widget.language)} · $date',
+                  '${categoryTextNoEmoji(x.category, widget.language)} · $date',
                 ),
                 trailing: Text('$sign$amt'),
               ),

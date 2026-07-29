@@ -707,7 +707,7 @@ class HomePage extends StatelessWidget {
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
-                                '${_isCA ? categoryTextNoEmoji(x.category, language) : categoryText(x.category, language)} · $date',
+                                '${categoryTextNoEmoji(x.category, language)} · $date',
                                 style: TextStyle(fontSize: 13, color: _textSub, fontWeight: FontWeight.w600),
                               ),
                             ),
