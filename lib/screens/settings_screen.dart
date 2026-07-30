@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:in_app_review/in_app_review.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../utils/i18n.dart';
 import '../storage.dart';
@@ -78,12 +79,16 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   int _versionTapCount = 0;
   String? _currentIcon;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     IconService.getCurrentIcon().then((v) {
       if (mounted) setState(() => _currentIcon = v);
+    });
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _appVersion = info.version);
     });
   }
 
@@ -990,7 +995,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Settings',
+                        t('settings', language),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
@@ -1212,11 +1217,11 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 18),
 
-        _sectionTitle('Subscription'),
+        _sectionTitle(t('settings_subscription', language)),
         _actionTile(
           leading: _img('manage_subscription'),
-          title: 'Manage Subscription',
-          subtitle: 'Apple Subscriptions',
+          title: t('settings_manage_subscription', language),
+          subtitle: t('settings_apple_subscriptions', language),
           onTap: () async {
             final uri = Uri.parse('https://apps.apple.com/account/subscriptions');
             try {
@@ -1297,7 +1302,7 @@ class _SettingsPageState extends State<SettingsPage> {
           onTap: _handleVersionTap,
           child: Center(
             child: Text(
-              'v1.0.0',
+              _appVersion.isEmpty ? '' : 'v$_appVersion',
               style: TextStyle(
                 fontSize: 12,
                 color: _textSub.withValues(alpha: 0.5),
