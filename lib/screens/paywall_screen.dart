@@ -495,12 +495,10 @@ class _FeatureList extends StatelessWidget {
   Widget build(BuildContext context) {
     final features = [
       t('paywall_feature_themes', lang),
-      t('paywall_feature_no_ads', lang),
       t('paywall_feature_backup', lang),
       t('paywall_feature_csv', lang),
       t('paywall_feature_recurring', lang),
       t('paywall_feature_categories', lang),
-      t('paywall_feature_cloud', lang),
     ];
 
     return Container(
