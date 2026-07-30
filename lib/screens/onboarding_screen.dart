@@ -412,32 +412,32 @@ class _ComparisonTable extends StatelessWidget {
         _Cell.text(t('onboarding_feature_categories_premium', language)),
       ),
       (
-        t('onboarding_feature_backup', language),
+        t('onboarding_feature_budget', language),
         _Cell.check,
+        _Cell.check,
+      ),
+      (
+        t('onboarding_feature_backup', language),
+        _Cell.cross,
         _Cell.check,
       ),
       (
         t('onboarding_feature_csv', language),
-        _Cell.check,
-        _Cell.check,
-      ),
-      (
-        t('onboarding_feature_cloud', language),
         _Cell.cross,
         _Cell.check,
       ),
       (
-        t('onboarding_feature_multi_wallet', language),
+        t('onboarding_feature_recurring', language),
         _Cell.cross,
         _Cell.check,
       ),
       (
-        t('onboarding_feature_budget_alert', language),
+        t('onboarding_feature_themes', language),
         _Cell.cross,
         _Cell.check,
       ),
       (
-        t('onboarding_feature_ad_free', language),
+        t('onboarding_feature_app_icon', language),
         _Cell.cross,
         _Cell.check,
       ),
