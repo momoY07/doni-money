@@ -848,6 +848,9 @@ class StatsPage extends StatelessWidget {
       final sym = currency == 'KRW' ? '₩' : '\$';
       final abs = v.abs();
       final sign = v < 0 ? '-' : '';
+      if (abs >= 1000000) {
+        return '$sign$sym${(abs / 1000000).toStringAsFixed(1)}M';
+      }
       if (abs >= 1000) {
         return '$sign$sym${(abs / 1000).toStringAsFixed(1)}K';
       }
@@ -988,9 +991,10 @@ class StatsPage extends StatelessWidget {
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipItems: (spots) => spots.map((s) {
                       final val = s.y;
-                      final sign = val >= 0 ? '+' : '';
+                      final formatted = formatCurrencyValue(val.abs(), currency);
+                      final sign = val >= 0 ? '+' : '-';
                       return LineTooltipItem(
-                        '$sign${val.toStringAsFixed(0)}',
+                        '$sign$formatted',
                         const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,

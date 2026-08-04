@@ -893,14 +893,14 @@ class _DayRecordsSheet extends StatelessWidget {
                           ),
                         ),
                         title: Text(
-                          x.note.isEmpty ? t('no_memo', language) : x.note,
+                          x.note.isEmpty ? categoryTextNoEmoji(x.category, language) : x.note,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: (isCA || isMB) ? Colors.white : const Color(0xFF223B36),
                           ),
                         ),
-                        subtitle: Padding(
+                        subtitle: x.note.isEmpty ? null : Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             categoryTextNoEmoji(x.category, language),

@@ -49,13 +49,6 @@ class HomePage extends StatelessWidget {
     this.carryover = 0.0,
   });
 
-  String _formatMoney(double amount) {
-    if (currency == 'KRW') {
-      return '₩${amount.toStringAsFixed(0)}';
-    }
-    return '\$${amount.toStringAsFixed(2)}';
-  }
-
   bool get _isMB => selectedTheme == 'minimal_black';
   bool get _isCA => selectedTheme == 'cyber_ai';
   bool get _isDog => selectedTheme.contains('dog');
@@ -167,7 +160,7 @@ class HomePage extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            '$sign${_formatMoney(carryover)}',
+            '$sign${formatCurrencyValue(carryover, currency)}',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
           ),
         ],
@@ -220,14 +213,14 @@ class HomePage extends StatelessWidget {
           Row(
             children: [
               Text(
-                _formatMoney(expense),
+                formatCurrencyValue(expense, currency),
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF627487)),
               ),
               const Spacer(),
               Text(
                 isOver
-                    ? '-${_formatMoney(remaining.abs())}'
-                    : '${t('budget_remaining', language)}: ${_formatMoney(remaining)}',
+                    ? '-${formatCurrencyValue(remaining.abs(), currency)}'
+                    : '${t('budget_remaining', language)}: ${formatCurrencyValue(remaining, currency)}',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: labelColor),
               ),
             ],
@@ -413,7 +406,7 @@ class HomePage extends StatelessWidget {
                           child: _buildMiniStatCard(
                             context: context,
                             label: t('income', language),
-                            value: _formatMoney(income),
+                            value: formatCurrencyValue(income, currency),
                             icon: Icons.south_west_rounded,
                             iconBgColor: const Color(0xFFE7F7EE),
                             iconColor: const Color(0xFF179C63),
@@ -426,7 +419,7 @@ class HomePage extends StatelessWidget {
                           child: _buildMiniStatCard(
                             context: context,
                             label: t('expense', language),
-                            value: _formatMoney(expense),
+                            value: formatCurrencyValue(expense, currency),
                             icon: Icons.north_east_rounded,
                             iconBgColor: const Color(0xFFFFECE8),
                             iconColor: const Color(0xFFD94B3D),
@@ -481,7 +474,7 @@ class HomePage extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      _formatMoney(cumulativeBalance),
+                                      formatCurrencyValue(cumulativeBalance, currency),
                                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
                                     ),
                                   ],
@@ -527,7 +520,7 @@ class HomePage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _formatMoney(cumulativeBalance),
+                                    formatCurrencyValue(cumulativeBalance, currency),
                                     style: TextStyle(
                                       fontSize: 24, fontWeight: FontWeight.w900,
                                       color: _isMB ? Colors.white : const Color(0xFF5C4A1C),
@@ -701,13 +694,13 @@ class HomePage extends StatelessWidget {
                               ),
                             ),
                             title: Text(
-                              x.note.isEmpty ? t('no_memo', language) : x.note,
+                              x.note.isEmpty ? categoryTextNoEmoji(x.category, language) : x.note,
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _textPrimary),
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
-                                '${categoryTextNoEmoji(x.category, language)} · $date',
+                                x.note.isEmpty ? date : '${categoryTextNoEmoji(x.category, language)} · $date',
                                 style: TextStyle(fontSize: 13, color: _textSub, fontWeight: FontWeight.w600),
                               ),
                             ),

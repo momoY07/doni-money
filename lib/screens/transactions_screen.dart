@@ -165,9 +165,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final monthLabel =
         '${widget.selectedMonth.year}-${widget.selectedMonth.month.toString().padLeft(2, '0')}';
 
-    String formatMoney(double amount) =>
-        formatCurrencyValue(amount, widget.currency);
-
     final monthItems =
         widget.items.where((x) {
           return x.date.year == widget.selectedMonth.year &&
