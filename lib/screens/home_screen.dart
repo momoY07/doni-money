@@ -399,69 +399,113 @@ class HomePage extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildMiniStatCard(
-                            context: context,
-                            label: t('income', language),
-                            value: formatCurrencyValue(income, currency),
-                            icon: Icons.south_west_rounded,
-                            iconBgColor: const Color(0xFFE7F7EE),
-                            iconColor: const Color(0xFF179C63),
-                            caGlowColor: _isCA ? const Color(0xFF00FF88) : null,
-                            caIcon: Icons.arrow_downward,
+                    if (!hasMixedCurrencies) ...[
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildMiniStatCard(
+                              context: context,
+                              label: t('income', language),
+                              value: formatCurrencyValue(income, currency),
+                              icon: Icons.south_west_rounded,
+                              iconBgColor: const Color(0xFFE7F7EE),
+                              iconColor: const Color(0xFF179C63),
+                              caGlowColor: _isCA ? const Color(0xFF00FF88) : null,
+                              caIcon: Icons.arrow_downward,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _buildMiniStatCard(
-                            context: context,
-                            label: t('expense', language),
-                            value: formatCurrencyValue(expense, currency),
-                            icon: Icons.north_east_rounded,
-                            iconBgColor: const Color(0xFFFFECE8),
-                            iconColor: const Color(0xFFD94B3D),
-                            caGlowColor: _isCA ? const Color(0xFFFF3366) : null,
-                            caIcon: Icons.arrow_upward,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _buildMiniStatCard(
+                              context: context,
+                              label: t('expense', language),
+                              value: formatCurrencyValue(expense, currency),
+                              icon: Icons.north_east_rounded,
+                              iconBgColor: const Color(0xFFFFECE8),
+                              iconColor: const Color(0xFFD94B3D),
+                              caGlowColor: _isCA ? const Color(0xFFFF3366) : null,
+                              caIcon: Icons.arrow_upward,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    // ── Balance card ──
-                    if (_isCA)
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF00D4FF), Color(0xFF7B2FFF)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // ── Balance card ──
+                      if (_isCA)
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF00D4FF), Color(0xFF7B2FFF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(21),
+                            boxShadow: [
+                              BoxShadow(color: Color(0xFF00D4FF).withValues(alpha: 0.35), blurRadius: 6),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(21),
-                          boxShadow: [
-                            BoxShadow(color: Color(0xFF00D4FF).withValues(alpha: 0.35), blurRadius: 6),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(1),
-                        child: Container(
+                          padding: const EdgeInsets.all(1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D1B3E),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42, height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF162040),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00D4FF)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        t('total_balance', language),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF6B6B9A)),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        formatCurrencyValue(cumulativeBalance, currency),
+                                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0D1B3E),
+                            color: _isMB ? const Color(0xFF2A2A2A) : const Color(0xFFEDD174),
                             borderRadius: BorderRadius.circular(20),
+                            border: _isMB ? Border.all(color: const Color(0xFF333333)) : null,
                           ),
                           child: Row(
                             children: [
                               Container(
                                 width: 42, height: 42,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF162040),
+                                  color: _isMB ? const Color(0xFF333333) : const Color(0xFFF8EDC3),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
-                                child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF00D4FF)),
+                                child: Icon(
+                                  Icons.account_balance_wallet_rounded,
+                                  color: _isMB ? const Color(0xFFC9A043) : const Color(0xFF9C7A22),
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -470,12 +514,18 @@ class HomePage extends StatelessWidget {
                                   children: [
                                     Text(
                                       t('total_balance', language),
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF6B6B9A)),
+                                      style: TextStyle(
+                                        fontSize: 13, fontWeight: FontWeight.w700,
+                                        color: _isMB ? const Color(0xFF888888) : const Color(0xFF8A7440),
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       formatCurrencyValue(cumulativeBalance, currency),
-                                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+                                      style: TextStyle(
+                                        fontSize: 24, fontWeight: FontWeight.w900,
+                                        color: _isMB ? Colors.white : const Color(0xFF5C4A1C),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -483,62 +533,14 @@ class HomePage extends StatelessWidget {
                             ],
                           ),
                         ),
-                      )
-                    else
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _isMB ? const Color(0xFF2A2A2A) : const Color(0xFFEDD174),
-                          borderRadius: BorderRadius.circular(20),
-                          border: _isMB ? Border.all(color: const Color(0xFF333333)) : null,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42, height: 42,
-                              decoration: BoxDecoration(
-                                color: _isMB ? const Color(0xFF333333) : const Color(0xFFF8EDC3),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                Icons.account_balance_wallet_rounded,
-                                color: _isMB ? const Color(0xFFC9A043) : const Color(0xFF9C7A22),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    t('total_balance', language),
-                                    style: TextStyle(
-                                      fontSize: 13, fontWeight: FontWeight.w700,
-                                      color: _isMB ? const Color(0xFF888888) : const Color(0xFF8A7440),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    formatCurrencyValue(cumulativeBalance, currency),
-                                    style: TextStyle(
-                                      fontSize: 24, fontWeight: FontWeight.w900,
-                                      color: _isMB ? Colors.white : const Color(0xFF5C4A1C),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (carryover != 0.0) ...[
-                      const SizedBox(height: 10),
-                      _buildCarryoverRow(context),
-                    ],
-                    if (monthlyBudget > 0) ...[
-                      const SizedBox(height: 10),
-                      _buildBudgetBar(context, expense),
+                      if (carryover != 0.0) ...[
+                        const SizedBox(height: 10),
+                        _buildCarryoverRow(context),
+                      ],
+                      if (monthlyBudget > 0) ...[
+                        const SizedBox(height: 10),
+                        _buildBudgetBar(context, expense),
+                      ],
                     ],
                   ],
                 ),
@@ -547,6 +549,8 @@ class HomePage extends StatelessWidget {
             if (hasMixedCurrencies) ...[
               const SizedBox(height: 16),
               buildMixedCurrencyNotice(language: language, currencies: monthCurrencies),
+              const SizedBox(height: 16),
+              _buildMixedCurrencySummaryCard(),
             ],
             const SizedBox(height: 16),
             // ── Add entry button (outline for CA) ──
