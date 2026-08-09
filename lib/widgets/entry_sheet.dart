@@ -97,6 +97,7 @@ class _EntrySheetState extends State<EntrySheet> {
     final showDoneBar = bottomInset > 0;
 
     return SafeArea(
+      top: false,
       child: Stack(
         children: [
           SingleChildScrollView(
@@ -104,7 +105,7 @@ class _EntrySheetState extends State<EntrySheet> {
               padding: EdgeInsets.only(
                 left: 16,
                 right: 16,
-                top: 16,
+                top: 16 + MediaQuery.of(context).viewPadding.top,
                 bottom: 16 + bottomInset + (showDoneBar ? 44 : 0),
               ),
               child: Column(
@@ -350,7 +351,7 @@ class _EntrySheetState extends State<EntrySheet> {
                     TextButton(
                       onPressed: () => FocusScope.of(context).unfocus(),
                       child: Text(
-                        t('close', widget.language),
+                        t('keyboard_done', widget.language),
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
