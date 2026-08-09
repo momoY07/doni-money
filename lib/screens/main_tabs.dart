@@ -887,6 +887,13 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     final carryoverEnabled = Storage.txBox.get('balance_carryover_enabled', defaultValue: true) as bool;
     final carryover = carryoverEnabled ? (prevMonthIncome - prevMonthExpense) : 0.0;
 
+    final cumulativeBalanceByCurrency = calculateCumulativeBalanceByCurrency(
+      tx, selectedMonth, fallbackCurrency: selectedCurrency);
+    final hasHistoryMixedCurrencies = cumulativeBalanceByCurrency.length > 1;
+    final carryoverByCurrency = carryoverEnabled
+        ? calculatePrevMonthBalanceByCurrency(tx, selectedMonth, fallbackCurrency: selectedCurrency)
+        : <String, double>{};
+
     final pages = [
       HomePage(
         income: monthIncome,
@@ -915,6 +922,9 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         selectedTheme: selectedTheme,
         cumulativeBalance: cumulativeBalance,
         carryover: carryover,
+        hasHistoryMixedCurrencies: hasHistoryMixedCurrencies,
+        cumulativeBalanceByCurrency: cumulativeBalanceByCurrency,
+        carryoverByCurrency: carryoverByCurrency,
       ),
       TransactionsPage(
         items: tx,
@@ -959,6 +969,9 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         currency: selectedCurrency,
         selectedTheme: selectedTheme,
         cumulativeBalance: cumulativeBalance,
+        hasHistoryMixedCurrencies: hasHistoryMixedCurrencies,
+        cumulativeBalanceByCurrency: cumulativeBalanceByCurrency,
+        carryoverByCurrency: carryoverByCurrency,
       ),
       SettingsPage(
         language: selectedLanguage,

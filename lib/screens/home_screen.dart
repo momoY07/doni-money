@@ -28,6 +28,9 @@ class HomePage extends StatelessWidget {
   final String selectedTheme;
   final double cumulativeBalance;
   final double carryover;
+  final bool hasHistoryMixedCurrencies;
+  final Map<String, double> cumulativeBalanceByCurrency;
+  final Map<String, double> carryoverByCurrency;
 
   const HomePage({
     super.key,
@@ -51,6 +54,9 @@ class HomePage extends StatelessWidget {
     required this.selectedTheme,
     required this.cumulativeBalance,
     this.carryover = 0.0,
+    required this.hasHistoryMixedCurrencies,
+    required this.cumulativeBalanceByCurrency,
+    required this.carryoverByCurrency,
   });
 
   bool get _isMB => selectedTheme == 'minimal_black';
