@@ -222,6 +222,25 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> openAddSheetWithType(bool isExpense) async {
+    final saved = await showModalBottomSheet<TxItem>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => EntrySheet(
+        language: selectedLanguage,
+        initialIsExpense: isExpense,
+      ),
+    );
+
+    if (saved != null) {
+      await context.read<TxRepo>().add(saved.toMap());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$_savedEmoji ${t('saved', selectedLanguage)}')),
+      );
+    }
+  }
+
   Future<void> openEditSheet(int index, TxItem item) async {
     final edited = await showModalBottomSheet<TxItem>(
       context: context,
@@ -873,6 +892,8 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         income: monthIncome,
         expense: monthExpense,
         onAdd: openAddSheet,
+        onAddIncome: () => openAddSheetWithType(false),
+        onAddExpense: () => openAddSheetWithType(true),
         selectedMonth: selectedMonth,
         onPrevMonth: goPrevMonth,
         onNextMonth: goNextMonth,

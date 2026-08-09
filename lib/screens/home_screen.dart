@@ -11,6 +11,8 @@ class HomePage extends StatelessWidget {
   final double income;
   final double expense;
   final VoidCallback onAdd;
+  final VoidCallback? onAddIncome;
+  final VoidCallback? onAddExpense;
   final DateTime selectedMonth;
   final VoidCallback onPrevMonth;
   final VoidCallback onNextMonth;
@@ -32,6 +34,8 @@ class HomePage extends StatelessWidget {
     required this.income,
     required this.expense,
     required this.onAdd,
+    this.onAddIncome,
+    this.onAddExpense,
     required this.selectedMonth,
     required this.onPrevMonth,
     required this.onNextMonth,
@@ -76,44 +80,47 @@ class HomePage extends StatelessWidget {
     required Color iconColor,
     Color? caGlowColor,
     IconData? caIcon,
+    VoidCallback? onTap,
   }) {
     final borderCol = (_isCA && caGlowColor != null) ? caGlowColor : _borderColor;
-    return Container(
+    final iconWidget = (_isCA && caIcon != null && caGlowColor != null)
+        ? Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: caGlowColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: caGlowColor.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 0),
+              ],
+            ),
+            child: Icon(caIcon, size: 20, color: caGlowColor),
+          )
+        : Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: iconBgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          );
+
+    final content = Padding(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _containerBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderCol),
-        boxShadow: (_isCA && caGlowColor != null)
-            ? [BoxShadow(color: caGlowColor.withValues(alpha: 0.45), blurRadius: 6, spreadRadius: 0)]
-            : null,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_isCA && caIcon != null && caGlowColor != null)
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: caGlowColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: caGlowColor.withValues(alpha: 0.5), blurRadius: 8, spreadRadius: 0),
-                ],
-              ),
-              child: Icon(caIcon, size: 20, color: caGlowColor),
-            )
-          else
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: iconBgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 20, color: iconColor),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              iconWidget,
+              if (onTap != null) ...[
+                const Spacer(),
+                Icon(Icons.add_circle_outline_rounded, size: 16, color: _textSub),
+              ],
+            ],
+          ),
           const SizedBox(height: 10),
           Text(
             label,
@@ -125,6 +132,29 @@ class HomePage extends StatelessWidget {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _textPrimary),
           ),
         ],
+      ),
+    );
+
+    final decoration = BoxDecoration(
+      color: _containerBg,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: borderCol),
+      boxShadow: (_isCA && caGlowColor != null)
+          ? [BoxShadow(color: caGlowColor.withValues(alpha: 0.45), blurRadius: 6, spreadRadius: 0)]
+          : null,
+    );
+
+    if (onTap == null) {
+      return Container(decoration: decoration, child: content);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Ink(decoration: decoration, child: content),
       ),
     );
   }
@@ -413,6 +443,7 @@ class HomePage extends StatelessWidget {
                               iconColor: const Color(0xFF179C63),
                               caGlowColor: _isCA ? const Color(0xFF00FF88) : null,
                               caIcon: Icons.arrow_downward,
+                              onTap: onAddIncome,
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -426,6 +457,7 @@ class HomePage extends StatelessWidget {
                               iconColor: const Color(0xFFD94B3D),
                               caGlowColor: _isCA ? const Color(0xFFFF3366) : null,
                               caIcon: Icons.arrow_upward,
+                              onTap: onAddExpense,
                             ),
                           ),
                         ],

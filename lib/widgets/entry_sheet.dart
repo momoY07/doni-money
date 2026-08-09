@@ -10,8 +10,9 @@ import '../storage.dart';
 class EntrySheet extends StatefulWidget {
   final String language;
   final TxItem? initialItem;
+  final bool? initialIsExpense;
 
-  const EntrySheet({super.key, required this.language, this.initialItem});
+  const EntrySheet({super.key, required this.language, this.initialItem, this.initialIsExpense});
 
   @override
   State<EntrySheet> createState() => _EntrySheetState();
@@ -20,6 +21,7 @@ class EntrySheet extends StatefulWidget {
 class _EntrySheetState extends State<EntrySheet> {
   final amountCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
+  final _amountFocus = FocusNode();
 
   bool isExpense = true;
   String category = '🍔 Food';
@@ -40,7 +42,11 @@ class _EntrySheetState extends State<EntrySheet> {
     _useCatPng = catFolderForTheme(theme) != null;
 
     final item = widget.initialItem;
-    if (item == null) return;
+    if (item == null) {
+      if (widget.initialIsExpense != null) isExpense = widget.initialIsExpense!;
+      if (currentCategories.isNotEmpty) category = currentCategories.first;
+      return;
+    }
 
     isExpense = item.isExpense;
     category = item.category;
@@ -77,46 +83,59 @@ class _EntrySheetState extends State<EntrySheet> {
   }
 
   @override
+  void dispose() {
+    amountCtrl.dispose();
+    noteCtrl.dispose();
+    _amountFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isEditMode = widget.initialItem != null;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final showDoneBar = bottomInset > 0;
 
     return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 16 + MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isEditMode
-                    ? (isExpense
-                          ? t('edit_expense', widget.language)
-                          : t('edit_income', widget.language))
-                    : (isExpense
-                          ? t('expense', widget.language)
-                          : t('income', widget.language)),
-                style: Theme.of(context).textTheme.titleLarge,
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16 + bottomInset + (showDoneBar ? 44 : 0),
               ),
-              const SizedBox(height: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isEditMode
+                        ? (isExpense
+                              ? t('edit_expense', widget.language)
+                              : t('edit_income', widget.language))
+                        : (isExpense
+                              ? t('expense', widget.language)
+                              : t('income', widget.language)),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
 
-              SectionLabel(t('amount', widget.language)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: InputDecoration(
-                  hintText: t('amount_hint', widget.language),
-                  border: const OutlineInputBorder(),
-                ),
-              ),
+                  SectionLabel(t('amount', widget.language)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: amountCtrl,
+                    focusNode: _amountFocus,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: t('amount_hint', widget.language),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
               const SizedBox(height: 12),
 
               SectionLabel(t('currency', widget.language)),
@@ -311,6 +330,36 @@ class _EntrySheetState extends State<EntrySheet> {
             ],
           ),
         ),
+      ),
+          if (showDoneBar)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomInset,
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F7),
+                  border: Border(
+                    top: BorderSide(color: const Color(0xFFCCCCCC), width: 0.5),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => FocusScope.of(context).unfocus(),
+                      child: Text(
+                        t('close', widget.language),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
