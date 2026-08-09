@@ -138,3 +138,36 @@ double calculateCumulativeBalance(List<TxItem> allItems, DateTime upToMonth) {
       .where((x) => x.date.isBefore(cutoff))
       .fold(0.0, (sum, x) => x.isExpense ? sum - x.amount : sum + x.amount);
 }
+
+Map<String, double> calculateCumulativeBalanceByCurrency(
+  List<TxItem> allItems,
+  DateTime upToMonth, {
+  required String fallbackCurrency,
+}) {
+  final cutoff = DateTime(upToMonth.year, upToMonth.month + 1);
+  final result = <String, double>{};
+  for (final x in allItems) {
+    if (!x.date.isBefore(cutoff)) continue;
+    final currency = effectiveItemCurrency(x, fallbackCurrency);
+    final delta = x.isExpense ? -x.amount : x.amount;
+    result[currency] = (result[currency] ?? 0.0) + delta;
+  }
+  return result;
+}
+
+Map<String, double> calculatePrevMonthBalanceByCurrency(
+  List<TxItem> allItems,
+  DateTime month, {
+  required String fallbackCurrency,
+}) {
+  final prevYear = month.month == 1 ? month.year - 1 : month.year;
+  final prevMonth = month.month == 1 ? 12 : month.month - 1;
+  final result = <String, double>{};
+  for (final x in allItems) {
+    if (x.date.year != prevYear || x.date.month != prevMonth) continue;
+    final currency = effectiveItemCurrency(x, fallbackCurrency);
+    final delta = x.isExpense ? -x.amount : x.amount;
+    result[currency] = (result[currency] ?? 0.0) + delta;
+  }
+  return result;
+}
