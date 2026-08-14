@@ -335,6 +335,116 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  Widget _buildCurrencyBalanceRow(String rowCurrency, double amount) {
+    final isPositive = amount >= 0;
+    final color = isPositive ? const Color(0xFF179C63) : const Color(0xFFD94B3D);
+    final sign = isPositive ? '+' : '';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _containerBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Row(
+        children: [
+          Text(rowCurrency,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _textSub)),
+          const Spacer(),
+          Text('$sign${formatCurrencyValue(amount, rowCurrency)}',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryMixedBalanceCard() {
+    final sortedEntries = cumulativeBalanceByCurrency.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: _isCA ? const Color(0xFF1A1A3A) : (_isMB ? const Color(0xFF2A2A2A) : const Color(0xFFF8EDC3)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.account_balance_wallet_rounded, size: 20,
+                  color: _isCA ? const Color(0xFF00D4FF) : (_isMB ? const Color(0xFFC9A043) : const Color(0xFF9C7A22))),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                t('total_balance', language),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _textPrimary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (int i = 0; i < sortedEntries.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            _buildCurrencyBalanceRow(sortedEntries[i].key, sortedEntries[i].value),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCarryoverRowForCurrency(String rowCurrency, double amount) {
+    final isPositive = amount >= 0;
+    final sign = isPositive ? '+' : '';
+    final color = isPositive ? const Color(0xFF179C63) : const Color(0xFFD94B3D);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isPositive
+            ? ((_isCA || _isMB) ? const Color(0xFF0A2A1A) : const Color(0xFFEFFAF5))
+            : ((_isCA || _isMB) ? const Color(0xFF2A0A0A) : const Color(0xFFFFF1F0)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isPositive
+              ? ((_isCA || _isMB) ? const Color(0xFF1A4A2A) : const Color(0xFFC3EAD8))
+              : ((_isCA || _isMB) ? const Color(0xFF4A1A1A) : const Color(0xFFEFCDCA)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(isPositive ? Icons.arrow_circle_up_rounded : Icons.arrow_circle_down_rounded,
+            size: 18, color: color),
+          const SizedBox(width: 8),
+          Text('${t('carried_over', language)} · $rowCurrency',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+          const Spacer(),
+          Text('$sign${formatCurrencyValue(amount, rowCurrency)}',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryMixedCarryoverCard() {
+    final sortedEntries = carryoverByCurrency.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Column(
+      children: [
+        for (int i = 0; i < sortedEntries.length; i++) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _buildCarryoverRowForCurrency(sortedEntries[i].key, sortedEntries[i].value),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthLabel =
@@ -469,7 +579,10 @@ class HomePage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // ── Balance card ──
+                    ],
+                    if (hasMixedCurrencies) const SizedBox(height: 18),
+                    // ── Balance card (split by historical currency mix) ──
+                    if (!hasHistoryMixedCurrencies) ...[
                       if (_isCA)
                         Container(
                           width: double.infinity,
@@ -575,10 +688,16 @@ class HomePage extends StatelessWidget {
                         const SizedBox(height: 10),
                         _buildCarryoverRow(context),
                       ],
-                      if (monthlyBudget > 0) ...[
+                    ] else ...[
+                      _buildHistoryMixedBalanceCard(),
+                      if (carryoverByCurrency.isNotEmpty) ...[
                         const SizedBox(height: 10),
-                        _buildBudgetBar(context, expense),
+                        _buildHistoryMixedCarryoverCard(),
                       ],
+                    ],
+                    if (!hasMixedCurrencies && monthlyBudget > 0) ...[
+                      const SizedBox(height: 10),
+                      _buildBudgetBar(context, expense),
                     ],
                   ],
                 ),

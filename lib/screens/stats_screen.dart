@@ -43,6 +43,38 @@ class StatsPage extends StatelessWidget {
     return formatCurrencyValue(amount, currency);
   }
 
+  Widget _buildCumulativeByCurrencyRows() {
+    final sortedEntries = cumulativeBalanceByCurrency.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (int i = 0; i < sortedEntries.length; i++) ...[
+          if (i > 0) const SizedBox(height: 6),
+          Row(
+            children: [
+              Text(
+                sortedEntries[i].key,
+                style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700,
+                  color: _isCA ? const Color(0xFF6B6B9A) : (_isMB ? const Color(0xFF888888) : const Color(0xFF8A7440)),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                formatCurrencyValue(sortedEntries[i].value, sortedEntries[i].key),
+                style: TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.w900,
+                  color: (_isCA || _isMB) ? Colors.white : const Color(0xFF5C4A1C),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   Future<void> _showCategoryEntriesSheet(
     BuildContext context,
     List<TxItem> monthItems,
@@ -1246,14 +1278,17 @@ class StatsPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        _formatMoney(cumulativeBalance),
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                          color: (_isCA || _isMB) ? Colors.white : const Color(0xFF5C4A1C),
-                        ),
-                      ),
+                      if (!hasHistoryMixedCurrencies)
+                        Text(
+                          _formatMoney(cumulativeBalance),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: (_isCA || _isMB) ? Colors.white : const Color(0xFF5C4A1C),
+                          ),
+                        )
+                      else
+                        _buildCumulativeByCurrencyRows(),
                     ],
                   ),
                 ),
