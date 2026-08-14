@@ -331,10 +331,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
                   imageSize: 28,
                 ),
                 title: Text(
-                  x.note.isEmpty ? t('no_memo', widget.language) : x.note,
+                  x.note.isEmpty ? categoryTextNoEmoji(x.category, widget.language) : x.note,
                 ),
                 subtitle: Text(
-                  '${categoryTextNoEmoji(x.category, widget.language)} · $date',
+                  x.note.isEmpty ? date : '${categoryTextNoEmoji(x.category, widget.language)} · $date',
                 ),
                 trailing: Text('$sign$amt'),
               ),

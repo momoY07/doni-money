@@ -82,6 +82,55 @@ class _EntrySheetState extends State<EntrySheet> {
     return '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
   }
 
+  void _saveEntry() {
+    final raw = amountCtrl.text.trim();
+    final amount = double.tryParse(raw.replaceAll(',', ''));
+
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('enter_valid_amount', widget.language))),
+      );
+      return;
+    }
+
+    final effectiveCurrency =
+        widget.initialItem != null &&
+            widget.initialItem!.entryCurrency.trim().isNotEmpty
+        ? widget.initialItem!.entryCurrency
+        : selectedCurrency;
+
+    final item = TxItem(
+      id: widget.initialItem?.id ??
+          DateTime.now().microsecondsSinceEpoch.toString(),
+      isExpense: isExpense,
+      amount: amount,
+      category: category,
+      note: noteCtrl.text.trim(),
+      date: selectedDate,
+      entryCurrency: effectiveCurrency,
+      baseAmount: amount,
+      baseCurrency: effectiveCurrency,
+      exchangeRate: 1.0,
+      currencyMetaVersion: 1,
+      paymentMethod: paymentMethod,
+    );
+
+    Navigator.pop(context, item);
+  }
+
+  Future<void> _showMemoDialog() async {
+    // showDialog<String>: null = skip/dismiss, String = save (may be empty)
+    final memoText = await showDialog<String>(
+      context: context,
+      builder: (dialogCtx) => _MemoDialog(language: widget.language),
+    );
+    if (!mounted) return;
+    if (memoText != null) {
+      noteCtrl.text = memoText;
+      _saveEntry();
+    }
+  }
+
   @override
   void dispose() {
     amountCtrl.dispose();
@@ -210,7 +259,14 @@ class _EntrySheetState extends State<EntrySheet> {
                       ),
                     )
                     .toList(),
-                onChanged: (v) => setState(() => category = v ?? category),
+                onChanged: (v) {
+                  setState(() => category = v ?? category);
+                  // New entry only; skip if amount is not yet entered
+                  if (widget.initialItem != null) return;
+                  final raw = amountCtrl.text.trim();
+                  final amount = double.tryParse(raw.replaceAll(',', ''));
+                  if (amount != null && amount > 0) _showMemoDialog();
+                },
                 decoration: const InputDecoration(border: OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
@@ -279,48 +335,7 @@ class _EntrySheetState extends State<EntrySheet> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: () {
-                    final raw = amountCtrl.text.trim();
-                    final amount = double.tryParse(raw.replaceAll(',', ''));
-
-                    if (amount == null || amount <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            t('enter_valid_amount', widget.language),
-                          ),
-                        ),
-                      );
-                      return;
-                    }
-
-                    final currentSelectedCurrency = selectedCurrency;
-
-                    final effectiveCurrency =
-                        widget.initialItem != null &&
-                            widget.initialItem!.entryCurrency.trim().isNotEmpty
-                        ? widget.initialItem!.entryCurrency
-                        : currentSelectedCurrency;
-
-                    final item = TxItem(
-                      id:
-                          widget.initialItem?.id ??
-                          DateTime.now().microsecondsSinceEpoch.toString(),
-                      isExpense: isExpense,
-                      amount: amount,
-                      category: category,
-                      note: noteCtrl.text.trim(),
-                      date: selectedDate,
-                      entryCurrency: effectiveCurrency,
-                      baseAmount: amount,
-                      baseCurrency: effectiveCurrency,
-                      exchangeRate: 1.0,
-                      currencyMetaVersion: 1,
-                      paymentMethod: paymentMethod,
-                    );
-
-                    Navigator.pop(context, item);
-                  },
+                  onPressed: _saveEntry,
                   child: Text(
                     isEditMode
                         ? t('save_changes', widget.language)
@@ -362,6 +377,49 @@ class _EntrySheetState extends State<EntrySheet> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _MemoDialog extends StatefulWidget {
+  final String language;
+  const _MemoDialog({required this.language});
+
+  @override
+  State<_MemoDialog> createState() => _MemoDialogState();
+}
+
+class _MemoDialogState extends State<_MemoDialog> {
+  final _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(t('memo_optional', widget.language)),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        decoration: InputDecoration(
+          hintText: t('memo_dialog_hint', widget.language),
+          border: const OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(t('skip', widget.language)),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text),
+          child: Text(t('save', widget.language)),
+        ),
+      ],
     );
   }
 }
