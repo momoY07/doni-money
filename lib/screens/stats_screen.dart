@@ -521,20 +521,20 @@ class StatsPage extends StatelessWidget {
                                 children: [
                                   Text(
                                     t('expense', language),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF75879A),
+                                      color: _isCA ? const Color(0xFF6B6B9A) : (_isMB ? const Color(0xFF888888) : const Color(0xFF75879A)),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     _formatMoney(totalExpense),
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w900,
-                                      color: Color(0xFF24364A),
+                                      color: (_isCA || _isMB) ? Colors.white : const Color(0xFF24364A),
                                     ),
                                   ),
                                 ],
@@ -576,20 +576,20 @@ class StatsPage extends StatelessWidget {
                                   children: [
                                     Text(
                                       t('expense', language),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF75879A),
+                                        color: _isCA ? const Color(0xFF6B6B9A) : (_isMB ? const Color(0xFF888888) : const Color(0xFF75879A)),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       _formatMoney(totalExpense),
                                       textAlign: TextAlign.center,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w900,
-                                        color: Color(0xFF24364A),
+                                        color: (_isCA || _isMB) ? Colors.white : const Color(0xFF24364A),
                                       ),
                                     ),
                                   ],
