@@ -29,7 +29,6 @@ class _EntrySheetState extends State<EntrySheet> {
   String selectedCurrency = 'USD';
   String paymentMethod = 'card';
   bool _isCyberAI = false;
-  bool _useCatPng = false;
 
   @override
   void initState() {
@@ -39,7 +38,6 @@ class _EntrySheetState extends State<EntrySheet> {
         Storage.txBox.get('selectedCurrency', defaultValue: 'USD') as String;
     final theme = Storage.txBox.get('selectedTheme', defaultValue: 'cream') as String;
     _isCyberAI = theme == 'cyber_ai';
-    _useCatPng = catFolderForTheme(theme) != null;
 
     final item = widget.initialItem;
     if (item == null) {
@@ -54,16 +52,21 @@ class _EntrySheetState extends State<EntrySheet> {
     amountCtrl.text = item.amount.toString();
     noteCtrl.text = item.note;
     paymentMethod = item.paymentMethod.isEmpty ? 'cash' : item.paymentMethod;
-
-    if (!currentCategories.contains(category) && currentCategories.isNotEmpty) {
-      category = currentCategories.first;
-    }
   }
 
   List<String> get currentCategories =>
       isExpense
           ? CategoryStore.expenseCategories()
           : CategoryStore.incomeCategories();
+
+  // 편집 모드에서 삭제된 카테고리가 목록에 없으면 맨 앞에 강제 추가
+  List<String> get _gridCategories {
+    final cats = currentCategories.toList();
+    if (widget.initialItem != null && !cats.contains(category)) {
+      cats.insert(0, category);
+    }
+    return cats;
+  }
 
   Future<void> pickDate() async {
     final picked = await showDatePicker(
@@ -222,32 +225,61 @@ class _EntrySheetState extends State<EntrySheet> {
 
               SectionLabel(t('category', widget.language)),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: category,
-                menuMaxHeight: 400,
-                items: currentCategories
-                    .map(
-                      (c) => DropdownMenuItem<String>(
-                        value: c,
-                        child: Row(
-                          children: [
-                            if (_isCyberAI || _useCatPng) ...[
-                              categoryIconWidget(
-                                rawCategory: c,
-                                isCyberAI: _isCyberAI,
-                                imageSize: 22,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final tileWidth = (constraints.maxWidth - 8 * 3) / 4;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _gridCategories.map((c) {
+                      final isSelected = c == category;
+                      return GestureDetector(
+                        onTap: () => setState(() => category = c),
+                        child: SizedBox(
+                          width: tileWidth,
+                          height: 76,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primaryContainer
+                                  : null,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.outlineVariant,
+                                width: isSelected ? 2.0 : 1.0,
                               ),
-                              const SizedBox(width: 8),
-                              Text(categoryTextNoEmoji(c, widget.language)),
-                            ] else
-                              Text(categoryText(c, widget.language)),
-                          ],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                categoryIconWidget(
+                                  rawCategory: c,
+                                  isCyberAI: _isCyberAI,
+                                  imageSize: 28,
+                                  emojiSize: 22,
+                                ),
+                                const SizedBox(height: 4),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                                  child: Text(
+                                    categoryTextNoEmoji(c, widget.language),
+                                    style: const TextStyle(fontSize: 10),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => category = v ?? category),
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
               const SizedBox(height: 12),
 

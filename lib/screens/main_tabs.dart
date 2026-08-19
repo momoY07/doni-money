@@ -210,6 +210,10 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     final saved = await showModalBottomSheet<TxItem>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       builder: (_) => EntrySheet(language: selectedLanguage),
     );
 
@@ -226,6 +230,10 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     final saved = await showModalBottomSheet<TxItem>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       builder: (_) => EntrySheet(
         language: selectedLanguage,
         initialIsExpense: isExpense,
@@ -245,6 +253,10 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     final edited = await showModalBottomSheet<TxItem>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       builder: (_) => EntrySheet(language: selectedLanguage, initialItem: item),
     );
 
