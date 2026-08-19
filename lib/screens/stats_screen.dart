@@ -883,7 +883,7 @@ class StatsPage extends StatelessWidget {
     final yMax = maxY + padding;
 
     String formatYLabel(double v) {
-      final sym = currency == 'KRW' ? '₩' : '\$';
+      final sym = currencySymbol(currency);
       final abs = v.abs();
       final sign = v < 0 ? '-' : '';
       if (abs >= 1000000) {

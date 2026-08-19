@@ -5,14 +5,31 @@ import '../models/tx_item.dart';
 import '../models/currency_summary.dart';
 import 'i18n.dart';
 
-String formatCurrencyValue(double amount, String currency) {
-  if (currency == 'KRW') {
-    final formatter = NumberFormat('#,##0', 'ko_KR');
-    return '₩${formatter.format(amount)}';
-  }
+const Map<String, (String, int)> _currencyMeta = {
+  'USD': ('\$', 2),
+  'KRW': ('₩', 0),
+  'EUR': ('€', 2),
+  'JPY': ('¥', 0),
+  'GBP': ('£', 2),
+  'CAD': ('CA\$', 2),
+  'AUD': ('A\$', 2),
+  'CNY': ('元', 2),
+  'HKD': ('HK\$', 2),
+  'SGD': ('S\$', 2),
+  'MXN': ('MX\$', 2),
+  'BRL': ('R\$', 2),
+  'THB': ('฿', 2),
+  'VND': ('₫', 0),
+};
 
-  final formatter = NumberFormat('#,##0.00', 'en_US');
-  return '\$${formatter.format(amount)}';
+String currencySymbol(String currency) =>
+    (_currencyMeta[currency] ?? ('\$', 2)).$1;
+
+String formatCurrencyValue(double amount, String currency) {
+  final (sym, decimals) = _currencyMeta[currency] ?? ('\$', 2);
+  final pattern = decimals == 0 ? '#,##0' : '#,##0.00';
+  final formatter = NumberFormat(pattern, 'en_US');
+  return '$sym${formatter.format(amount)}';
 }
 
 String effectiveItemCurrency(TxItem item, String fallbackCurrency) {
