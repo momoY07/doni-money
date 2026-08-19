@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/tx_item.dart';
 import '../utils/i18n.dart';
 import '../utils/currency_utils.dart';
+import '../widgets/category_icon.dart';
 
 class TxDetailSheet extends StatelessWidget {
   final TxItem item;
@@ -66,9 +67,11 @@ class TxDetailSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: const Color(0xFFD9E4EE)),
                   ),
-                  child: Text(
-                    item.category.split(' ').first,
-                    style: const TextStyle(fontSize: 28),
+                  child: categoryIconWidget(
+                    rawCategory: item.category,
+                    isCyberAI: false,
+                    imageSize: 28,
+                    emojiSize: 28,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -87,7 +90,7 @@ class TxDetailSheet extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         item.note.isEmpty
-                            ? t('no_memo', language)
+                            ? categoryTextNoEmoji(item.category, language)
                             : item.note,
                         style: const TextStyle(
                           fontSize: 17,

@@ -164,7 +164,7 @@ class StatsPage extends StatelessWidget {
                           ),
                         ),
                         title: Text(
-                          x.note.isEmpty ? t('no_memo', language) : x.note,
+                          x.note.isEmpty ? categoryTextNoEmoji(x.category, language) : x.note,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         subtitle: Text(date),
