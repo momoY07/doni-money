@@ -237,7 +237,7 @@ class _EntrySheetState extends State<EntrySheet> {
                         onTap: () => setState(() => category = c),
                         child: SizedBox(
                           width: tileWidth,
-                          height: 76,
+                          height: 90,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
                             decoration: BoxDecoration(
@@ -258,10 +258,10 @@ class _EntrySheetState extends State<EntrySheet> {
                                 categoryIconWidget(
                                   rawCategory: c,
                                   isCyberAI: _isCyberAI,
-                                  imageSize: 28,
-                                  emojiSize: 22,
+                                  imageSize: 44,
+                                  emojiSize: 38,
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 2),
                                   child: Text(
