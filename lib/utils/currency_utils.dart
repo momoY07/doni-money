@@ -25,6 +25,9 @@ const Map<String, (String, int)> _currencyMeta = {
 String currencySymbol(String currency) =>
     (_currencyMeta[currency] ?? ('\$', 2)).$1;
 
+int currencyDecimals(String currency) =>
+    (_currencyMeta[currency] ?? ('\$', 2)).$2;
+
 String formatCurrencyValue(double amount, String currency) {
   final (sym, decimals) = _currencyMeta[currency] ?? ('\$', 2);
   final pattern = decimals == 0 ? '#,##0' : '#,##0.00';

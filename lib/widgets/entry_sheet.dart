@@ -6,6 +6,7 @@ import '../utils/category_store.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/section_label.dart';
 import '../storage.dart';
+import '../utils/currency_utils.dart';
 
 class EntrySheet extends StatefulWidget {
   final String language;
@@ -21,7 +22,7 @@ class EntrySheet extends StatefulWidget {
 class _EntrySheetState extends State<EntrySheet> {
   final amountCtrl = TextEditingController();
   final noteCtrl = TextEditingController();
-  final _amountFocus = FocusNode();
+  String _amountRaw = '';
 
   bool isExpense = true;
   String category = '🍔 Food';
@@ -49,7 +50,10 @@ class _EntrySheetState extends State<EntrySheet> {
     isExpense = item.isExpense;
     category = item.category;
     selectedDate = item.date;
-    amountCtrl.text = item.amount.toString();
+    String rawStr = item.amount.toString();
+    if (rawStr.endsWith('.0')) rawStr = rawStr.substring(0, rawStr.length - 2);
+    _amountRaw = rawStr;
+    amountCtrl.text = _formatDisplay(_amountRaw);
     noteCtrl.text = item.note;
     paymentMethod = item.paymentMethod.isEmpty ? 'cash' : item.paymentMethod;
   }
@@ -125,32 +129,127 @@ class _EntrySheetState extends State<EntrySheet> {
   void dispose() {
     amountCtrl.dispose();
     noteCtrl.dispose();
-    _amountFocus.dispose();
     super.dispose();
+  }
+
+  String _addThousandsSep(String intStr) {
+    if (intStr.length <= 3) return intStr;
+    final buf = StringBuffer();
+    final offset = intStr.length % 3;
+    for (int i = 0; i < intStr.length; i++) {
+      if (i > 0 && (i - offset) % 3 == 0) buf.write(',');
+      buf.write(intStr[i]);
+    }
+    return buf.toString();
+  }
+
+  String _formatDisplay(String raw) {
+    if (raw.isEmpty) return '0';
+    final parts = raw.split('.');
+    final formatted = _addThousandsSep(parts[0]);
+    return parts.length == 2 ? '$formatted.${parts[1]}' : formatted;
+  }
+
+  void _numpadInput(String key) {
+    final decimals = currencyDecimals(selectedCurrency);
+
+    if (key == '⌫') {
+      if (_amountRaw.isNotEmpty) {
+        setState(() {
+          _amountRaw = _amountRaw.substring(0, _amountRaw.length - 1);
+          amountCtrl.text = _amountRaw.isEmpty ? '' : _formatDisplay(_amountRaw);
+        });
+      }
+      return;
+    }
+
+    if (key == '.') {
+      if (decimals == 0 || _amountRaw.contains('.')) return;
+      setState(() {
+        _amountRaw = _amountRaw.isEmpty ? '0.' : '$_amountRaw.';
+        amountCtrl.text = _formatDisplay(_amountRaw);
+      });
+      return;
+    }
+
+    // 숫자 키
+    if (_amountRaw.contains('.')) {
+      final dec = _amountRaw.split('.')[1];
+      if (dec.length >= decimals) return;
+    }
+    setState(() {
+      _amountRaw = _amountRaw == '0' ? key : _amountRaw + key;
+      amountCtrl.text = _formatDisplay(_amountRaw);
+    });
+  }
+
+  Widget _buildNumpad() {
+    final decimals = currencyDecimals(selectedCurrency);
+
+    Widget numKey(String label, {bool disabled = false}) {
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: GestureDetector(
+            onTap: disabled ? null : () => _numpadInput(label),
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: disabled
+                    ? const Color(0xFFEEEEEE)
+                    : const Color(0xFFF2F4F6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: disabled
+                      ? const Color(0xFFBBBBBB)
+                      : const Color(0xFF24364A),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Row(children: [numKey('1'), numKey('2'), numKey('3')]),
+        Row(children: [numKey('4'), numKey('5'), numKey('6')]),
+        Row(children: [numKey('7'), numKey('8'), numKey('9')]),
+        Row(children: [
+          numKey('.', disabled: decimals == 0),
+          numKey('0'),
+          numKey('⌫'),
+        ]),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isEditMode = widget.initialItem != null;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final showDoneBar = bottomInset > 0;
 
     return SafeArea(
       top: false,
-      child: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16 + MediaQuery.of(context).viewPadding.top,
-                bottom: 16 + bottomInset + (showDoneBar ? 44 : 0),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16 + MediaQuery.of(context).viewPadding.top,
+            bottom: 16 + bottomInset,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                   Text(
                     isEditMode
                         ? (isExpense
@@ -165,17 +264,21 @@ class _EntrySheetState extends State<EntrySheet> {
 
                   SectionLabel(t('amount', widget.language)),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: amountCtrl,
-                    focusNode: _amountFocus,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFBFCFCB)),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    decoration: InputDecoration(
-                      hintText: t('amount_hint', widget.language),
-                      border: const OutlineInputBorder(),
+                    child: Text(
+                      amountCtrl.text.isEmpty ? '0' : amountCtrl.text,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Color(0xFF24364A)),
+                      textAlign: TextAlign.right,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  _buildNumpad(),
               const SizedBox(height: 12),
 
               SectionLabel(t('currency', widget.language)),
@@ -358,36 +461,6 @@ class _EntrySheetState extends State<EntrySheet> {
             ],
           ),
         ),
-      ),
-          if (showDoneBar)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: bottomInset,
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F7),
-                  border: Border(
-                    top: BorderSide(color: const Color(0xFFCCCCCC), width: 0.5),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => FocusScope.of(context).unfocus(),
-                      child: Text(
-                        t('keyboard_done', widget.language),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
