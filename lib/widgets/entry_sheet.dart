@@ -30,6 +30,8 @@ class _EntrySheetState extends State<EntrySheet> {
   String selectedCurrency = 'USD';
   String paymentMethod = 'card';
   bool _isCyberAI = false;
+  final _categoryPageCtrl = PageController();
+  int _categoryPage = 0;
 
   @override
   void initState() {
@@ -129,6 +131,7 @@ class _EntrySheetState extends State<EntrySheet> {
   void dispose() {
     amountCtrl.dispose();
     noteCtrl.dispose();
+    _categoryPageCtrl.dispose();
     super.dispose();
   }
 
@@ -181,6 +184,134 @@ class _EntrySheetState extends State<EntrySheet> {
       _amountRaw = _amountRaw == '0' ? key : _amountRaw + key;
       amountCtrl.text = _formatDisplay(_amountRaw);
     });
+  }
+
+  Widget _buildCategoryPager() {
+    const int cols = 4;
+    const int rows = 3;
+    const int perPage = cols * rows;
+    const double tileHeight = 90;
+    const double rowGap = 8;
+    const double colGap = 8;
+    const double pageHeight = rows * tileHeight + (rows - 1) * rowGap;
+
+    final cats = _gridCategories;
+    final pageCount = (cats.length / perPage).ceil();
+    if (pageCount == 0) return const SizedBox.shrink();
+
+    Widget buildTile(String c) {
+      final isSelected = c == category;
+      return GestureDetector(
+        onTap: () => setState(() => category = c),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: tileHeight,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primaryContainer
+                : null,
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outlineVariant,
+              width: isSelected ? 2.0 : 1.0,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              categoryIconWidget(
+                rawCategory: c,
+                isCyberAI: _isCyberAI,
+                imageSize: 44,
+                emojiSize: 38,
+              ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Text(
+                  categoryTextNoEmoji(c, widget.language),
+                  style: const TextStyle(fontSize: 10),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: pageHeight,
+          child: PageView.builder(
+            controller: _categoryPageCtrl,
+            scrollDirection: Axis.horizontal,
+            itemCount: pageCount,
+            onPageChanged: (page) => setState(() => _categoryPage = page),
+            itemBuilder: (context, pageIndex) {
+              final start = pageIndex * perPage;
+              final pageEnd = start + perPage > cats.length ? cats.length : start + perPage;
+              final pageCats = cats.sublist(start, pageEnd);
+
+              final rowWidgets = <Widget>[];
+              for (int row = 0; row < rows; row++) {
+                final rowStart = row * cols;
+                if (rowStart >= pageCats.length) break;
+                if (row > 0) rowWidgets.add(const SizedBox(height: rowGap));
+                final rowEnd = rowStart + cols > pageCats.length ? pageCats.length : rowStart + cols;
+                final rowCats = pageCats.sublist(rowStart, rowEnd);
+                rowWidgets.add(
+                  Row(
+                    children: [
+                      for (int i = 0; i < cols; i++) ...[
+                        if (i > 0) const SizedBox(width: colGap),
+                        Expanded(
+                          child: i < rowCats.length
+                              ? buildTile(rowCats[i])
+                              : const SizedBox(),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: rowWidgets,
+              );
+            },
+          ),
+        ),
+        if (pageCount > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(pageCount, (i) {
+              final active = i == _categoryPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: active ? 8 : 6,
+                height: active ? 8 : 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: active
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.outlineVariant,
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _buildNumpad() {
@@ -321,69 +452,16 @@ class _EntrySheetState extends State<EntrySheet> {
                     if (isExpense && paymentMethod == 'bank') {
                       paymentMethod = 'card';
                     }
+                    _categoryPage = 0;
                   });
+                  _categoryPageCtrl.jumpToPage(0);
                 },
               ),
               const SizedBox(height: 12),
 
               SectionLabel(t('category', widget.language)),
               const SizedBox(height: 8),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final tileWidth = (constraints.maxWidth - 8 * 3) / 4;
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _gridCategories.map((c) {
-                      final isSelected = c == category;
-                      return GestureDetector(
-                        onTap: () => setState(() => category = c),
-                        child: SizedBox(
-                          width: tileWidth,
-                          height: 90,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primaryContainer
-                                  : null,
-                              border: Border.all(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.outlineVariant,
-                                width: isSelected ? 2.0 : 1.0,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                categoryIconWidget(
-                                  rawCategory: c,
-                                  isCyberAI: _isCyberAI,
-                                  imageSize: 44,
-                                  emojiSize: 38,
-                                ),
-                                const SizedBox(height: 6),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                                  child: Text(
-                                    categoryTextNoEmoji(c, widget.language),
-                                    style: const TextStyle(fontSize: 10),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
+              _buildCategoryPager(),
               const SizedBox(height: 12),
 
               SectionLabel(t('payment_method', widget.language)),
