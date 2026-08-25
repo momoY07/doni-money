@@ -4,9 +4,14 @@ import '../models/tx_item.dart';
 import '../utils/i18n.dart';
 import '../utils/category_store.dart';
 import '../widgets/category_icon.dart';
-import '../widgets/section_label.dart';
 import '../storage.dart';
 import '../utils/currency_utils.dart';
+
+const _kCurrencies = [
+  'USD', 'KRW', 'EUR', 'JPY', 'GBP',
+  'CAD', 'AUD', 'CNY', 'HKD', 'SGD',
+  'MXN', 'BRL', 'THB', 'VND',
+];
 
 class EntrySheet extends StatefulWidget {
   final String language;
@@ -81,10 +86,7 @@ class _EntrySheetState extends State<EntrySheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-
-    if (picked != null) {
-      setState(() => selectedDate = picked);
-    }
+    if (picked != null) setState(() => selectedDate = picked);
   }
 
   String get formattedDate {
@@ -125,6 +127,34 @@ class _EntrySheetState extends State<EntrySheet> {
     );
 
     Navigator.pop(context, item);
+  }
+
+  Future<void> _pickCurrency() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(t('currency', widget.language)),
+        children: _kCurrencies
+            .map(
+              (c) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, c),
+                child: Text(
+                  c,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight:
+                        c == selectedCurrency ? FontWeight.w700 : FontWeight.normal,
+                    color: c == selectedCurrency
+                        ? Theme.of(ctx).colorScheme.primary
+                        : null,
+                  ),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    if (result != null) setState(() => selectedCurrency = result);
   }
 
   @override
@@ -186,145 +216,178 @@ class _EntrySheetState extends State<EntrySheet> {
     });
   }
 
+  String _dateKeyLabel() {
+    final now = DateTime.now();
+    final isToday = selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
+    if (isToday) {
+      const labels = {'ko': '오늘', 'es': 'Hoy', 'zh': '今天', 'ja': '今日'};
+      return labels[widget.language] ?? 'Today';
+    }
+    return '${selectedDate.month}/${selectedDate.day}';
+  }
+
   Widget _buildCategoryPager() {
     const int cols = 4;
     const int rows = 3;
     const int perPage = cols * rows;
-    const double tileHeight = 90;
     const double rowGap = 8;
     const double colGap = 8;
-    const double pageHeight = rows * tileHeight + (rows - 1) * rowGap;
 
     final cats = _gridCategories;
     final pageCount = (cats.length / perPage).ceil();
     if (pageCount == 0) return const SizedBox.shrink();
 
-    Widget buildTile(String c) {
-      final isSelected = c == category;
-      return GestureDetector(
-        onTap: () => setState(() => category = c),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          height: tileHeight,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primaryContainer
-                : null,
-            border: Border.all(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outlineVariant,
-              width: isSelected ? 2.0 : 1.0,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              categoryIconWidget(
-                rawCategory: c,
-                isCyberAI: _isCyberAI,
-                imageSize: 44,
-                emojiSize: 38,
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Text(
-                  categoryTextNoEmoji(c, widget.language),
-                  style: const TextStyle(fontSize: 10),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final indicatorH = pageCount > 1 ? 8.0 + 8.0 : 0.0;
+        final rawTileH =
+            (constraints.maxHeight - indicatorH - rowGap * (rows - 1)) / rows;
+        final tileH = rawTileH.clamp(40.0, 90.0);
+        final imageSize = (tileH * 0.44).clamp(22.0, 44.0);
+        final emojiSize = (tileH * 0.38).clamp(18.0, 38.0);
+        final pageViewH = tileH * rows + rowGap * (rows - 1);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: pageHeight,
-          child: PageView.builder(
-            controller: _categoryPageCtrl,
-            scrollDirection: Axis.horizontal,
-            itemCount: pageCount,
-            onPageChanged: (page) => setState(() => _categoryPage = page),
-            itemBuilder: (context, pageIndex) {
-              final start = pageIndex * perPage;
-              final pageEnd = start + perPage > cats.length ? cats.length : start + perPage;
-              final pageCats = cats.sublist(start, pageEnd);
-
-              final rowWidgets = <Widget>[];
-              for (int row = 0; row < rows; row++) {
-                final rowStart = row * cols;
-                if (rowStart >= pageCats.length) break;
-                if (row > 0) rowWidgets.add(const SizedBox(height: rowGap));
-                final rowEnd = rowStart + cols > pageCats.length ? pageCats.length : rowStart + cols;
-                final rowCats = pageCats.sublist(rowStart, rowEnd);
-                rowWidgets.add(
-                  Row(
-                    children: [
-                      for (int i = 0; i < cols; i++) ...[
-                        if (i > 0) const SizedBox(width: colGap),
-                        Expanded(
-                          child: i < rowCats.length
-                              ? buildTile(rowCats[i])
-                              : const SizedBox(),
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              }
-
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: rowWidgets,
-              );
-            },
-          ),
-        ),
-        if (pageCount > 1) ...[
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(pageCount, (i) {
-              final active = i == _categoryPage;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: active ? 8 : 6,
-                height: active ? 8 : 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: active
+        Widget buildTile(String c) {
+          final isSelected = c == category;
+          return GestureDetector(
+            onTap: () => setState(() => category = c),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              height: tileH,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : null,
+                border: Border.all(
+                  color: isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.outlineVariant,
+                  width: isSelected ? 2.0 : 1.0,
                 ),
-              );
-            }),
-          ),
-        ],
-      ],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  categoryIconWidget(
+                    rawCategory: c,
+                    isCyberAI: _isCyberAI,
+                    imageSize: imageSize,
+                    emojiSize: emojiSize,
+                  ),
+                  SizedBox(height: tileH * 0.06),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Text(
+                      categoryTextNoEmoji(c, widget.language),
+                      style: const TextStyle(fontSize: 9),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: pageViewH,
+              child: PageView.builder(
+                controller: _categoryPageCtrl,
+                scrollDirection: Axis.horizontal,
+                itemCount: pageCount,
+                onPageChanged: (page) => setState(() => _categoryPage = page),
+                itemBuilder: (context, pageIndex) {
+                  final start = pageIndex * perPage;
+                  final pageEnd = start + perPage > cats.length
+                      ? cats.length
+                      : start + perPage;
+                  final pageCats = cats.sublist(start, pageEnd);
+
+                  final rowWidgets = <Widget>[];
+                  for (int row = 0; row < rows; row++) {
+                    final rowStart = row * cols;
+                    if (rowStart >= pageCats.length) break;
+                    if (row > 0) rowWidgets.add(SizedBox(height: rowGap));
+                    final rowEnd = rowStart + cols > pageCats.length
+                        ? pageCats.length
+                        : rowStart + cols;
+                    final rowCats = pageCats.sublist(rowStart, rowEnd);
+                    rowWidgets.add(
+                      Row(
+                        children: [
+                          for (int i = 0; i < cols; i++) ...[
+                            if (i > 0) const SizedBox(width: colGap),
+                            Expanded(
+                              child: i < rowCats.length
+                                  ? buildTile(rowCats[i])
+                                  : const SizedBox(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: rowWidgets,
+                  );
+                },
+              ),
+            ),
+            if (pageCount > 1) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(pageCount, (i) {
+                  final active = i == _categoryPage;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: active ? 8 : 6,
+                    height: active ? 8 : 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: active
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
   Widget _buildNumpad() {
     final decimals = currencyDecimals(selectedCurrency);
+    final dateLabel = _dateKeyLabel();
 
-    Widget numKey(String label, {bool disabled = false}) {
+    Widget numKey(
+      String label, {
+      bool disabled = false,
+      int flex = 1,
+      VoidCallback? onTap,
+    }) {
       return Expanded(
+        flex: flex,
         child: Padding(
           padding: const EdgeInsets.all(3),
           child: GestureDetector(
-            onTap: disabled ? null : () => _numpadInput(label),
+            onTap: disabled ? null : (onTap ?? () => _numpadInput(label)),
             child: Container(
-              height: 52,
+              height: 44,
               decoration: BoxDecoration(
                 color: disabled
                     ? const Color(0xFFEEEEEE)
@@ -335,7 +398,7 @@ class _EntrySheetState extends State<EntrySheet> {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: disabled
                       ? const Color(0xFFBBBBBB)
@@ -350,13 +413,23 @@ class _EntrySheetState extends State<EntrySheet> {
 
     return Column(
       children: [
-        Row(children: [numKey('1'), numKey('2'), numKey('3')]),
-        Row(children: [numKey('4'), numKey('5'), numKey('6')]),
-        Row(children: [numKey('7'), numKey('8'), numKey('9')]),
+        Row(children: [numKey('1'), numKey('2'), numKey('3'), numKey('⌫')]),
+        Row(children: [
+          numKey('4'),
+          numKey('5'),
+          numKey('6'),
+          numKey(dateLabel, onTap: pickDate),
+        ]),
+        Row(children: [
+          numKey('7'),
+          numKey('8'),
+          numKey('9'),
+          numKey('✓', onTap: _saveEntry),
+        ]),
         Row(children: [
           numKey('.', disabled: decimals == 0),
-          numKey('0'),
-          numKey('⌫'),
+          numKey('0', flex: 2),
+          const Expanded(child: SizedBox()),
         ]),
       ],
     );
@@ -364,183 +437,178 @@ class _EntrySheetState extends State<EntrySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isEditMode = widget.initialItem != null;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final showKeyboard = bottomInset > 0;
 
     return SafeArea(
       top: false,
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16 + MediaQuery.of(context).viewPadding.top,
-            bottom: 16 + bottomInset,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                  Text(
-                    isEditMode
-                        ? (isExpense
-                              ? t('edit_expense', widget.language)
-                              : t('edit_income', widget.language))
-                        : (isExpense
-                              ? t('expense', widget.language)
-                              : t('income', widget.language)),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-
-                  SectionLabel(t('amount', widget.language)),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFBFCFCB)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      amountCtrl.text.isEmpty ? '0' : amountCtrl.text,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Color(0xFF24364A)),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildNumpad(),
-              const SizedBox(height: 12),
-
-              SectionLabel(t('currency', widget.language)),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: selectedCurrency,
-                items:
-                    const [
-                          'USD', 'KRW', 'EUR', 'JPY', 'GBP',
-                          'CAD', 'AUD', 'CNY', 'HKD', 'SGD',
-                          'MXN', 'BRL', 'THB', 'VND',
-                        ]
-                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                        .toList(),
-                onChanged: (v) =>
-                    setState(() => selectedCurrency = v ?? selectedCurrency),
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment<bool>(
-                    value: true,
-                    label: Text(t('expense', widget.language)),
-                  ),
-                  ButtonSegment<bool>(
-                    value: false,
-                    label: Text(t('income', widget.language)),
-                  ),
-                ],
-                selected: {isExpense},
-                onSelectionChanged: (s) {
-                  setState(() {
-                    isExpense = s.first;
-                    if (!currentCategories.contains(category) && currentCategories.isNotEmpty) {
-                      category = currentCategories.first;
-                    }
-                    // 지출로 전환 시 bank는 지원하지 않으므로 cash로 초기화
-                    if (isExpense && paymentMethod == 'bank') {
-                      paymentMethod = 'card';
-                    }
-                    _categoryPage = 0;
-                  });
-                  _categoryPageCtrl.jumpToPage(0);
-                },
-              ),
-              const SizedBox(height: 12),
-
-              SectionLabel(t('category', widget.language)),
-              const SizedBox(height: 8),
-              _buildCategoryPager(),
-              const SizedBox(height: 12),
-
-              SectionLabel(t('payment_method', widget.language)),
-              const SizedBox(height: 8),
-              SegmentedButton<String>(
-                segments: [
-                  ButtonSegment<String>(
-                    value: 'card',
-                    label: Text(t('card', widget.language)),
-                  ),
-                  ButtonSegment<String>(
-                    value: 'cash',
-                    label: Text(t('cash', widget.language)),
-                  ),
-                  if (!isExpense)
-                    ButtonSegment<String>(
-                      value: 'bank',
-                      label: Text(t('bank', widget.language)),
-                    ),
-                ],
-                selected: {paymentMethod},
-                onSelectionChanged: (s) =>
-                    setState(() => paymentMethod = s.first),
-              ),
-              const SizedBox(height: 12),
-
-              InkWell(
-                onTap: pickDate,
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFBFCFCB)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.calendar_today_outlined),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          '${t('date', widget.language)}: $formattedDate',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          showKeyboard
+              ? bottomInset
+              : MediaQuery.of(context).viewPadding.bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 상단: 지출/수입 토글 + 닫기
+            Row(
+              children: [
+                Expanded(
+                  child: SegmentedButton<bool>(
+                    segments: [
+                      ButtonSegment<bool>(
+                        value: true,
+                        label: Text(t('expense', widget.language)),
+                      ),
+                      ButtonSegment<bool>(
+                        value: false,
+                        label: Text(t('income', widget.language)),
                       ),
                     ],
+                    selected: {isExpense},
+                    onSelectionChanged: (s) {
+                      setState(() {
+                        isExpense = s.first;
+                        if (!currentCategories.contains(category) &&
+                            currentCategories.isNotEmpty) {
+                          category = currentCategories.first;
+                        }
+                        // 지출로 전환 시 bank는 지원하지 않으므로 cash로 초기화
+                        if (isExpense && paymentMethod == 'bank') {
+                          paymentMethod = 'card';
+                        }
+                        _categoryPage = 0;
+                      });
+                      _categoryPageCtrl.jumpToPage(0);
+                    },
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              SectionLabel(t('memo_optional', widget.language)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: noteCtrl,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _saveEntry,
-                  child: Text(
-                    isEditMode
-                        ? t('save_changes', widget.language)
-                        : t('save', widget.language),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // 중간: 카테고리 페이저 (남은 공간 차지)
+            Expanded(child: _buildCategoryPager()),
+            const SizedBox(height: 8),
+            // 메모 + 금액 + 통화 한 줄
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextField(
+                      controller: noteCtrl,
+                      decoration: InputDecoration(
+                        hintText: t('memo_optional', widget.language),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 12,
+                        ),
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _pickCurrency,
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFBFCFCB)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          amountCtrl.text.isEmpty ? '0' : amountCtrl.text,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF24364A),
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          selectedCurrency,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF75879A),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_drop_down,
+                          size: 16,
+                          color: Color(0xFF75879A),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // 결제수단 칩
+            Row(
+              children: [
+                for (final method in [
+                  'card',
+                  'cash',
+                  if (!isExpense) 'bank',
+                ]) ...[
+                  if (method != 'card') const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => paymentMethod = method),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: paymentMethod == method
+                            ? Theme.of(context).colorScheme.primaryContainer
+                            : const Color(0xFFF2F4F6),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: paymentMethod == method
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: Text(
+                        t(method, widget.language),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: paymentMethod == method
+                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                              : const Color(0xFF24364A),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 6),
+            // 키패드 (메모 키보드가 올라와 있으면 숨김)
+            if (!showKeyboard) _buildNumpad(),
+          ],
         ),
       ),
     );
   }
 }
-
