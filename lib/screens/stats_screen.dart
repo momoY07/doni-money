@@ -851,14 +851,19 @@ class StatsPage extends StatelessWidget {
   }
 
   Widget _buildAssetTrendCard(BuildContext context) {
-    final now = DateTime.now();
     final spots = <FlSpot>[];
     final labels = <String>[];
     double minY = 0;
     double maxY = 0;
 
     for (int i = 5; i >= 0; i--) {
-      final m = DateTime(now.year, now.month - i);
+      int mYear = selectedMonth.year;
+      int mMonth = selectedMonth.month - i;
+      while (mMonth <= 0) {
+        mMonth += 12;
+        mYear--;
+      }
+      final m = DateTime(mYear, mMonth);
       final monthItems = items.where(
         (x) => x.date.year == m.year && x.date.month == m.month,
       );
