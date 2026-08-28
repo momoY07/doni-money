@@ -851,10 +851,9 @@ class StatsPage extends StatelessWidget {
   }
 
   Widget _buildAssetTrendCard(BuildContext context) {
-    final spots = <FlSpot>[];
     final labels = <String>[];
-    double minY = 0;
-    double maxY = 0;
+    // monthByCurrency[monthIdx][currency] = [income, expense]
+    final monthByCurrency = List.generate(6, (_) => <String, List<double>>{});
 
     for (int i = 5; i >= 0; i--) {
       int mYear = selectedMonth.year;
@@ -864,23 +863,93 @@ class StatsPage extends StatelessWidget {
         mYear--;
       }
       final m = DateTime(mYear, mMonth);
+      final xIdx = 5 - i;
+      labels.add('${m.month}${language == 'ko' ? '월' : ''}');
+
       final monthItems = items.where(
         (x) => x.date.year == m.year && x.date.month == m.month,
       );
-      final income = monthItems
-          .where((x) => !x.isExpense)
-          .fold(0.0, (s, x) => s + x.amount);
-      final expense = monthItems
-          .where((x) => x.isExpense)
-          .fold(0.0, (s, x) => s + x.amount);
-      final balance = income - expense;
+      for (final x in monthItems) {
+        final cur = effectiveItemCurrency(x, currency);
+        monthByCurrency[xIdx].putIfAbsent(cur, () => [0.0, 0.0]);
+        if (x.isExpense) {
+          monthByCurrency[xIdx][cur]![1] += x.amount;
+        } else {
+          monthByCurrency[xIdx][cur]![0] += x.amount;
+        }
+      }
+    }
 
-      final xVal = (5 - i).toDouble();
-      spots.add(FlSpot(xVal, balance));
-      labels.add('${m.month}${language == 'ko' ? '월' : ''}');
+    // 6개월 창에서 거래가 하나라도 있는 통화만 표시
+    final usedCurrencies = <String>{};
+    for (final m in monthByCurrency) {
+      usedCurrencies.addAll(m.keys);
+    }
 
-      if (balance < minY) minY = balance;
-      if (balance > maxY) maxY = balance;
+    // 통화별 FlSpot 목록 (거래 없는 달은 0.0)
+    final currencySpotMap = <String, List<FlSpot>>{};
+    for (final cur in usedCurrencies) {
+      final spotList = <FlSpot>[];
+      for (int xIdx = 0; xIdx < 6; xIdx++) {
+        final entry = monthByCurrency[xIdx][cur];
+        final balance = entry != null ? entry[0] - entry[1] : 0.0;
+        spotList.add(FlSpot(xIdx.toDouble(), balance));
+      }
+      currencySpotMap[cur] = spotList;
+    }
+
+    // 알파벳 정렬로 순서를 고정
+    final activeCurrencies = currencySpotMap.keys.toList()..sort();
+
+    // 거래 없음 — 빈 차트 1개 표시
+    if (activeCurrencies.isEmpty) {
+      return _buildSingleTrendChart(
+        context,
+        currency,
+        List.generate(6, (i) => FlSpot(i.toDouble(), 0.0)),
+        labels,
+        title: t('asset_trend', language),
+      );
+    }
+
+    // 통화 1개 — 기존과 동일한 모양
+    if (activeCurrencies.length == 1) {
+      final cur = activeCurrencies.first;
+      return _buildSingleTrendChart(
+        context, cur, currencySpotMap[cur]!, labels,
+        title: t('asset_trend', language),
+      );
+    }
+
+    // 통화 2개 이상 — 통화별로 카드 분리
+    return Column(
+      children: [
+        for (int ci = 0; ci < activeCurrencies.length; ci++) ...[
+          if (ci > 0) const SizedBox(height: 16),
+          _buildSingleTrendChart(
+            context,
+            activeCurrencies[ci],
+            currencySpotMap[activeCurrencies[ci]]!,
+            labels,
+            title: '${t('asset_trend', language)} (${activeCurrencies[ci]})',
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSingleTrendChart(
+    BuildContext context,
+    String cur,
+    List<FlSpot> spots,
+    List<String> labels, {
+    required String title,
+  }) {
+    double minY = 0;
+    double maxY = 0;
+    for (final s in spots) {
+      if (s.y < minY) minY = s.y;
+      if (s.y > maxY) maxY = s.y;
     }
 
     final padding = ((maxY - minY) * 0.2).abs().clamp(100.0, double.infinity);
@@ -888,7 +957,7 @@ class StatsPage extends StatelessWidget {
     final yMax = maxY + padding;
 
     String formatYLabel(double v) {
-      final sym = currencySymbol(currency);
+      final sym = currencySymbol(cur);
       final abs = v.abs();
       final sign = v < 0 ? '-' : '';
       if (abs >= 1000000) {
@@ -911,7 +980,7 @@ class StatsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            t('asset_trend', language),
+            title,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
@@ -1032,9 +1101,9 @@ class StatsPage extends StatelessWidget {
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipItems: (spots) => spots.map((s) {
+                    getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
                       final val = s.y;
-                      final formatted = formatCurrencyValue(val.abs(), currency);
+                      final formatted = formatCurrencyValue(val.abs(), cur);
                       final sign = val >= 0 ? '+' : '-';
                       return LineTooltipItem(
                         '$sign$formatted',
