@@ -500,74 +500,63 @@ class _EntrySheetState extends State<EntrySheet> {
             // 중간: 카테고리 페이저 (남은 공간 차지)
             Expanded(child: _buildCategoryPager()),
             const SizedBox(height: 8),
-            // 메모 + 금액 + 통화 한 줄
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: TextField(
-                      controller: noteCtrl,
-                      decoration: InputDecoration(
-                        hintText: t('memo_optional', widget.language),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 12,
-                        ),
-                        border: const OutlineInputBorder(),
-                      ),
+            // 금액 + 통화 — 전체 폭, 오른쪽 정렬
+            GestureDetector(
+              onTap: _pickCurrency,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    amountCtrl.text.isEmpty ? '0' : amountCtrl.text,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: (_isCyberAI || _isMB)
+                          ? Colors.white
+                          : const Color(0xFF24364A),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _pickCurrency,
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFBFCFCB)),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          amountCtrl.text.isEmpty ? '0' : amountCtrl.text,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: (_isCyberAI || _isMB)
-                                ? Colors.white
-                                : const Color(0xFF24364A),
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          selectedCurrency,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: (_isCyberAI || _isMB)
-                                ? Colors.white70
-                                : const Color(0xFF75879A),
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_drop_down,
-                          size: 16,
-                          color: (_isCyberAI || _isMB)
-                              ? Colors.white70
-                              : const Color(0xFF75879A),
-                        ),
-                      ],
+                  const SizedBox(width: 6),
+                  Text(
+                    selectedCurrency,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: (_isCyberAI || _isMB)
+                          ? Colors.white70
+                          : const Color(0xFF75879A),
                     ),
                   ),
-                ),
-              ],
+                  Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: (_isCyberAI || _isMB)
+                        ? Colors.white70
+                        : const Color(0xFF75879A),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
+            // 메모 입력 — 전체 폭
+            SizedBox(
+              height: 36,
+              child: TextField(
+                controller: noteCtrl,
+                decoration: InputDecoration(
+                  hintText: t('memo_optional', widget.language),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
             // 결제수단 칩
             Row(
               children: [
@@ -611,7 +600,7 @@ class _EntrySheetState extends State<EntrySheet> {
                 ],
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             // 키패드 (메모 키보드가 올라와 있으면 숨김)
             if (!showKeyboard) _buildNumpad(),
           ],
