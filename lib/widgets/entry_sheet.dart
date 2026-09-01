@@ -35,6 +35,7 @@ class _EntrySheetState extends State<EntrySheet> {
   String selectedCurrency = 'USD';
   String paymentMethod = 'card';
   bool _isCyberAI = false;
+  bool _isMB = false;
   final _categoryPageCtrl = PageController();
   int _categoryPage = 0;
 
@@ -46,6 +47,7 @@ class _EntrySheetState extends State<EntrySheet> {
         Storage.txBox.get('selectedCurrency', defaultValue: 'USD') as String;
     final theme = Storage.txBox.get('selectedTheme', defaultValue: 'cream') as String;
     _isCyberAI = theme == 'cyber_ai';
+    _isMB = theme == 'minimal_black';
 
     final item = widget.initialItem;
     if (item == null) {
@@ -533,25 +535,31 @@ class _EntrySheetState extends State<EntrySheet> {
                       children: [
                         Text(
                           amountCtrl.text.isEmpty ? '0' : amountCtrl.text,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF24364A),
+                            color: (_isCyberAI || _isMB)
+                                ? Colors.white
+                                : const Color(0xFF24364A),
                           ),
                         ),
                         const SizedBox(width: 5),
                         Text(
                           selectedCurrency,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF75879A),
+                            color: (_isCyberAI || _isMB)
+                                ? Colors.white70
+                                : const Color(0xFF75879A),
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.arrow_drop_down,
                           size: 16,
-                          color: Color(0xFF75879A),
+                          color: (_isCyberAI || _isMB)
+                              ? Colors.white70
+                              : const Color(0xFF75879A),
                         ),
                       ],
                     ),
