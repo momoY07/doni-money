@@ -46,10 +46,23 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
   String selectedTheme = 'cream';
   double _monthlyBudget = 0;
 
-  String get _savedEmoji {
-    if (selectedTheme == 'cyber_ai') return '🤖';
-    if (selectedTheme.contains('dog')) return '🐶';
-    return '🦦';
+  /// "Saved" snackbar with the app's otter graphic (same in every theme).
+  SnackBar _savedSnackBar() {
+    final text = t('saved', selectedLanguage);
+    return SnackBar(
+      content: Row(
+        children: [
+          Image.asset(
+            'assets/images/snackbar_otter.png',
+            width: 22,
+            height: 22,
+            filterQuality: FilterQuality.medium,
+          ),
+          const SizedBox(width: 8),
+          Flexible(child: Text(text)),
+        ],
+      ),
+    );
   }
 
   bool _prefsLoaded = false;
@@ -222,7 +235,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       await context.read<TxRepo>().add(saved.toMap());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$_savedEmoji ${t('saved', selectedLanguage)}')),
+        _savedSnackBar(),
       );
     }
   }
@@ -245,7 +258,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       await context.read<TxRepo>().add(saved.toMap());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$_savedEmoji ${t('saved', selectedLanguage)}')),
+        _savedSnackBar(),
       );
     }
   }
@@ -265,7 +278,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       await context.read<TxRepo>().updateById(item.id, edited.toMap());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$_savedEmoji ${t('saved', selectedLanguage)}')),
+        _savedSnackBar(),
       );
     }
   }
