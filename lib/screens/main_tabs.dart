@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +24,9 @@ import '../widgets/passcode_setup_sheet.dart';
 import '../widgets/passcode_verify_sheet.dart';
 import '../services/purchase_service.dart';
 import 'paywall_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../services/backup_service.dart';
+import '../services/backup_file_transfer.dart';
 
 class MainTabs extends StatefulWidget {
   const MainTabs({super.key});
@@ -308,184 +309,6 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     }
   }
 
-  Map<String, dynamic> _buildBackupPayload() {
-    final repo = context.read<TxRepo>();
-
-    return {
-      'app': 'easy_financial_ledger',
-      'formatVersion': 2,
-      'exportedAt': DateTime.now().toIso8601String(),
-      'data': {
-        'items': repo.items
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList(),
-        'settings': {
-          'selectedLanguage': selectedLanguage,
-          'selectedCurrency': selectedCurrency,
-          'selectedTheme': selectedTheme,
-        },
-      },
-    };
-  }
-
-  List<Map<String, dynamic>> _normalizeImportedItems(dynamic rawItems) {
-    if (rawItems is! List) {
-      throw const FormatException();
-    }
-
-    final normalizedItems = <Map<String, dynamic>>[];
-
-    for (final item in rawItems) {
-      if (item is! Map) {
-        throw const FormatException();
-      }
-
-      final map = Map<String, dynamic>.from(item);
-
-      if (!map.containsKey('isExpense') ||
-          !map.containsKey('amount') ||
-          !map.containsKey('category') ||
-          !map.containsKey('note') ||
-          !map.containsKey('date')) {
-        throw const FormatException();
-      }
-
-      if (map['isExpense'] is! bool) {
-        throw const FormatException();
-      }
-
-      if (map['amount'] is! num) {
-        throw const FormatException();
-      }
-
-      final parsedDate = DateTime.tryParse(map['date'].toString());
-      if (parsedDate == null) {
-        throw const FormatException();
-      }
-
-      final amount = (map['amount'] as num).toDouble();
-      final rawEntryCurrency = map['entryCurrency']?.toString() ?? '';
-      final rawBaseCurrency = map['baseCurrency']?.toString() ?? '';
-      final rawVersion = map['currencyMetaVersion'];
-
-      final normalized = <String, dynamic>{
-        'isExpense': map['isExpense'] as bool,
-        'amount': amount,
-        'category': map['category'].toString(),
-        'note': map['note']?.toString() ?? '',
-        'date': parsedDate.toIso8601String(),
-        'entryCurrency': rawEntryCurrency.trim(),
-        'baseAmount': map['baseAmount'] is num
-            ? (map['baseAmount'] as num).toDouble()
-            : amount,
-        'baseCurrency': rawBaseCurrency.trim().isEmpty
-            ? rawEntryCurrency.trim()
-            : rawBaseCurrency.trim(),
-        'exchangeRate': map['exchangeRate'] is num
-            ? (map['exchangeRate'] as num).toDouble()
-            : 1.0,
-        'currencyMetaVersion': rawVersion is int
-            ? rawVersion
-            : (rawVersion is num
-                  ? rawVersion.toInt()
-                  : (rawEntryCurrency.trim().isEmpty ? 0 : 1)),
-      };
-
-      final rawId = map['id']?.toString();
-      if (rawId != null && rawId.trim().isNotEmpty) {
-        normalized['id'] = rawId;
-      }
-
-      normalizedItems.add(normalized);
-    }
-
-    return normalizedItems;
-  }
-
-  Map<String, dynamic> _parseImportPayload(dynamic decoded) {
-    if (decoded is List) {
-      return {'items': _normalizeImportedItems(decoded), 'settings': null};
-    }
-
-    if (decoded is! Map) {
-      throw const FormatException();
-    }
-
-    final root = Map<String, dynamic>.from(decoded);
-
-    dynamic rawItems;
-    Map<String, dynamic>? rawSettings;
-
-    if (root['data'] is Map) {
-      final data = Map<String, dynamic>.from(root['data'] as Map);
-      rawItems = data['items'];
-
-      if (data['settings'] is Map) {
-        rawSettings = Map<String, dynamic>.from(data['settings'] as Map);
-      }
-    } else {
-      rawItems = root['items'];
-
-      if (root['settings'] is Map) {
-        rawSettings = Map<String, dynamic>.from(root['settings'] as Map);
-      }
-    }
-
-    if (rawItems == null) {
-      throw const FormatException();
-    }
-
-    return {
-      'items': _normalizeImportedItems(rawItems),
-      'settings': rawSettings,
-    };
-  }
-
-  Future<void> _applyImportedSettings(Map<String, dynamic>? settings) async {
-    if (settings == null) return;
-
-    const supportedLanguages = {'en', 'ko', 'es', 'zh', 'ja'};
-    const supportedCurrencies = {
-      'USD', 'KRW', 'EUR', 'JPY', 'GBP',
-      'CAD', 'AUD', 'CNY', 'HKD', 'SGD',
-      'MXN', 'BRL', 'THB', 'VND',
-    };
-    const supportedThemes = {'cream', 'otter_light', 'otter_dark', 'dog', 'dog_dark', 'dog_system', 'minimal_black', 'cyber_ai'};
-
-    String nextLanguage = selectedLanguage;
-    String nextCurrency = selectedCurrency;
-    String nextTheme = selectedTheme;
-
-    final importedLanguage = settings['selectedLanguage']?.toString();
-    final importedCurrency = settings['selectedCurrency']?.toString();
-    final importedTheme = settings['selectedTheme']?.toString();
-
-    if (importedLanguage != null &&
-        supportedLanguages.contains(importedLanguage)) {
-      nextLanguage = importedLanguage;
-      await Storage.txBox.put('selectedLanguage', importedLanguage);
-    }
-
-    if (importedCurrency != null &&
-        supportedCurrencies.contains(importedCurrency)) {
-      nextCurrency = importedCurrency;
-      await Storage.txBox.put('selectedCurrency', importedCurrency);
-    }
-
-    if (importedTheme != null && supportedThemes.contains(importedTheme)) {
-      nextTheme = importedTheme;
-      await Storage.txBox.put('selectedTheme', importedTheme);
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      selectedLanguage = nextLanguage;
-      selectedCurrency = nextCurrency;
-      selectedTheme = nextTheme;
-    });
-  }
-
   Future<void> _processRecurring() async {
     final items = RecurringItem.loadAll();
     final now = DateTime.now();
@@ -547,6 +370,142 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     );
   }
 
+  // ── Versioned backup (BackupService) ─────────────────────────
+
+  String _backupErrorText(BackupException e) {
+    switch (e.code) {
+      case BackupErrorCode.wrongFormat:
+        return t('backup_err_format', selectedLanguage);
+      case BackupErrorCode.unsupportedSchemaVersion:
+        return t('backup_err_version', selectedLanguage);
+      case BackupErrorCode.storageFailure:
+        return t('backup_err_storage', selectedLanguage);
+      case BackupErrorCode.malformedJson:
+      case BackupErrorCode.missingField:
+      case BackupErrorCode.invalidType:
+      case BackupErrorCode.invalidValue:
+        return t('backup_err_invalid', selectedLanguage);
+    }
+  }
+
+  Future<String?> _appVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return '${info.version}+${info.buildNumber}';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Confirmation text shared by file restore and JSON paste import.
+  String _restoreConfirmText(ValidatedBackup b) {
+    final parts = <String>[];
+    final created = b.createdAt?.toLocal();
+    if (created != null) {
+      String two(int v) => v.toString().padLeft(2, '0');
+      parts.add('${created.year}-${two(created.month)}-${two(created.day)} '
+          '${two(created.hour)}:${two(created.minute)}');
+    }
+    parts.add('${b.transactions.length} ${t('backup_transactions', selectedLanguage)}');
+    final buf = StringBuffer(t('backup_restore_confirm_message', selectedLanguage))
+      ..write('\n\n')
+      ..write(parts.join(' · '));
+    if (b.isLegacy) {
+      buf
+        ..write('\n\n')
+        ..write(t('backup_legacy_note', selectedLanguage));
+    }
+    return buf.toString();
+  }
+
+  void _showSnack(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> exportBackupFile() async {
+    try {
+      final service = BackupService();
+      final json = service.createBackupJson(appVersion: await _appVersion());
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox?;
+      await const BackupFileTransfer().share(
+        json,
+        service.suggestedFileName(),
+        origin: box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+      );
+    } catch (e) {
+      _showSnack(e.toString());
+    }
+  }
+
+  Future<void> restoreBackupFile() async {
+    final String? raw;
+    try {
+      raw = await const BackupFileTransfer().pick();
+    } catch (e) {
+      _showSnack(e.toString());
+      return;
+    }
+    if (raw == null || !mounted) return;
+
+    final service = BackupService();
+    final ValidatedBackup preview;
+    try {
+      preview = service.validateBackup(raw);
+    } on BackupException catch (e) {
+      _showSnack(_backupErrorText(e));
+      return;
+    }
+    if (!mounted) return;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('backup_restore_confirm_title', selectedLanguage)),
+        content: Text(_restoreConfirmText(preview)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('cancel', selectedLanguage)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('backup_restore_action', selectedLanguage)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    try {
+      // Validates again internally; nothing is written unless it passes.
+      await service.restoreBackup(raw);
+    } on BackupException catch (e) {
+      _showSnack(_backupErrorText(e));
+      return;
+    }
+    if (!mounted) return;
+    _reloadAfterRestore();
+    _showSnack(t('backup_restored', selectedLanguage));
+  }
+
+  /// Re-reads restored values so every tab shows them without a restart.
+  void _reloadAfterRestore() {
+    context.read<TxRepo>().reloadFromStorage();
+    setState(() {
+      selectedLanguage =
+          Storage.txBox.get('selectedLanguage', defaultValue: 'en') as String;
+      selectedCurrency =
+          Storage.txBox.get('selectedCurrency', defaultValue: 'USD') as String;
+      selectedTheme =
+          Storage.txBox.get('selectedTheme', defaultValue: 'cream') as String;
+      _monthlyBudget =
+          (Storage.txBox.get('monthlyBudget', defaultValue: 0.0) as num)
+              .toDouble();
+    });
+  }
+
   Future<void> openCategoriesScreen() async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -559,10 +518,16 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
   }
 
   Future<void> showExportPreview() async {
-    final backupPayload = _buildBackupPayload();
-    final prettyJson = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(backupPayload);
+    final String prettyJson;
+    try {
+      prettyJson = BackupService().createBackupJson(
+        appVersion: await _appVersion(),
+      );
+    } catch (e) {
+      _showSnack(e.toString());
+      return;
+    }
+    if (!mounted) return;
 
     await showModalBottomSheet(
       context: context,
@@ -666,15 +631,10 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
                   child: FilledButton(
                     onPressed: () async {
                       try {
-                        final decoded = jsonDecode(controller.text.trim());
-                        final parsedPayload = _parseImportPayload(decoded);
-
-                        final parsedItems = List<Map<String, dynamic>>.from(
-                          parsedPayload['items'] as List,
-                        );
-
-                        final importedSettings =
-                            parsedPayload['settings'] as Map<String, dynamic>?;
+                        final raw = controller.text.trim();
+                        final service = BackupService();
+                        // Validates (and migrates legacy) without writing.
+                        final preview = service.validateBackup(raw);
 
                         final ok = await showDialog<bool>(
                           context: rootContext,
@@ -682,9 +642,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
                             title: Text(
                               t('import_confirm_title', selectedLanguage),
                             ),
-                            content: Text(
-                              t('import_confirm_message', selectedLanguage),
-                            ),
+                            content: Text(_restoreConfirmText(preview)),
                             actionsPadding: const EdgeInsets.fromLTRB(
                               20,
                               0,
@@ -720,12 +678,10 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
 
                         if (ok != true) return;
 
-                        await rootContext.read<TxRepo>().replaceAll(
-                          parsedItems,
-                        );
-                        await _applyImportedSettings(importedSettings);
+                        await service.restoreBackup(raw);
 
                         if (!mounted) return;
+                        _reloadAfterRestore();
 
                         Navigator.pop(modalContext);
                         ScaffoldMessenger.of(rootContext).showSnackBar(
@@ -733,6 +689,8 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
                             content: Text(t('imported', selectedLanguage)),
                           ),
                         );
+                      } on BackupException catch (e) {
+                        setModalState(() => errorText = _backupErrorText(e));
                       } catch (_) {
                         setModalState(() {
                           errorText = t(
@@ -1012,15 +970,12 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         onClear: confirmClearAll,
         monthlyBudget: _monthlyBudget,
         onBudgetChanged: updateBudget,
-        onGetBackupPayload: () async => _buildBackupPayload(),
-        onApplyImport: (items, settings) async {
-          await context.read<TxRepo>().replaceAll(items);
-          await _applyImportedSettings(settings);
-        },
         onGetAllItems: () => context.read<TxRepo>().items,
         onGetSelectedCurrency: () => selectedCurrency,
         onOpenRecurring: openRecurringScreen,
         onOpenCategories: openCategoriesScreen,
+        onExportBackup: exportBackupFile,
+        onRestoreBackup: restoreBackupFile,
         isPremium: context.watch<PurchaseService>().isPremium,
         onOpenPaywall: openPaywall,
       ),

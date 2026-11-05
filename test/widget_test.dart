@@ -1,30 +1,77 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// App boot smoke test: the real widget tree (providers + MainTabs) starts on
+// existing storage and shows stored data. Replaces the unused `flutter create`
+// counter template that never matched this app.
+
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:simple_ledger/main.dart';
+import 'package:simple_ledger/services/purchase_service.dart';
+import 'package:simple_ledger/storage.dart';
+import 'package:simple_ledger/tx_repo.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const SimpleLedgerApp(showOnboarding: false));
+  late Directory tmp;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  setUpAll(() async {
+    tmp = await Directory.systemTemp.createTemp('app_smoke');
+    Hive.init(tmp.path);
+    await Hive.openBox(Storage.txBoxName);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  tearDownAll(() async {
+    await Hive.deleteFromDisk();
+    await tmp.delete(recursive: true);
+  });
+
+  testWidgets('app boots to main tabs and reads existing records', (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarding_done': true});
+    await tester.runAsync(() async {
+      await Storage.txBox.putAll({
+        'selectedLanguage': 'en',
+        'selectedCurrency': 'USD',
+        'items': [
+          jsonEncode({
+            'id': 'smoke1',
+            'isExpense': true,
+            'amount': 12.5,
+            'category': '☕ Coffee',
+            'note': 'smoke-test-latte',
+            'date': DateTime.now().toIso8601String(),
+            // Already normalized, so TxRepo has nothing to rewrite on boot.
+            'entryCurrency': '',
+            'baseAmount': 12.5,
+            'baseCurrency': '',
+            'exchangeRate': 1.0,
+            'currencyMetaVersion': 0,
+          }),
+        ],
+      });
+    });
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => TxRepo()),
+          ChangeNotifierProvider(create: (_) => PurchaseService()),
+        ],
+        child: const SimpleLedgerApp(showOnboarding: false),
+      ),
+    );
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-  });
+    expect(find.text('Doni Money'), findsWidgets);
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+
+    // Open the List tab: the stored row is rendered.
+    await tester.tap(find.text('List'));
+    await tester.pump();
+    expect(find.textContaining('smoke-test-latte'), findsWidgets);
+  }, timeout: const Timeout(Duration(seconds: 60)));
 }

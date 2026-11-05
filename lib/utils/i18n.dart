@@ -205,7 +205,6 @@ String t(String key, String language) {
     'imported': '복원됐어요.',
     'invalid_import_json': '올바른 JSON 형식이 아니에요.',
     'import_confirm_title': '기록을 복원할까요?',
-    'import_confirm_message': '현재 기록은 덮어쓰여요.',
     'search': '검색',
     'search_hint': '메모 또는 카테고리 검색',
     'no_search_results': '검색 결과가 없어요.',
@@ -416,6 +415,16 @@ String t(String key, String language) {
     'mascot_dog': '강아지',
     'mascot_minimal_black': '미니멀 블랙',
     'mascot_cyber_ai': '사이버 AI',
+    'backup_restore_confirm_title': '백업으로 복원할까요?',
+    'backup_restore_confirm_message': '현재 기기의 모든 기록, 반복 거래, 사용자 카테고리, 설정이 이 백업 내용으로 교체돼요. 되돌릴 수 없어요.',
+    'backup_restore_action': '복원',
+    'backup_restored': '백업을 복원했어요.',
+    'backup_transactions': '거래',
+    'backup_err_format': 'Doni Money 백업 파일이 아니에요.',
+    'backup_err_version': '지원하지 않는 백업 버전이에요. 앱을 업데이트해 주세요.',
+    'backup_err_invalid': '백업 파일이 손상되었거나 올바르지 않아요.',
+    'backup_err_storage': '복원에 실패했어요. 기존 데이터는 그대로예요.',
+    'backup_legacy_note': '이전 형식의 백업이에요. 거래 내역과 언어·통화·테마만 복원되고, 반복 거래·사용자 카테고리·예산은 현재 값이 유지돼요.',
   };
 
   const en = {
@@ -501,7 +510,6 @@ String t(String key, String language) {
     'imported': 'Imported.',
     'invalid_import_json': 'Invalid JSON format.',
     'import_confirm_title': 'Import entries?',
-    'import_confirm_message': 'Current entries will be replaced.',
     'search': 'Search',
     'search_hint': 'Search memo or category',
     'no_search_results': 'No search results.',
@@ -714,6 +722,16 @@ String t(String key, String language) {
     'mascot_dog': 'Dog',
     'mascot_minimal_black': 'Minimal Black',
     'mascot_cyber_ai': 'Cyber AI',
+    'backup_restore_confirm_title': 'Restore this backup?',
+    'backup_restore_confirm_message': 'All current data on this device (transactions, recurring items, custom categories and settings) will be replaced by this backup. This cannot be undone.',
+    'backup_restore_action': 'Restore',
+    'backup_restored': 'Backup restored.',
+    'backup_transactions': 'transactions',
+    'backup_err_format': 'This is not a Doni Money backup file.',
+    'backup_err_version': 'This backup version is not supported. Please update the app.',
+    'backup_err_invalid': 'The backup file is damaged or invalid.',
+    'backup_err_storage': 'Restore failed. Your existing data was kept.',
+    'backup_legacy_note': 'This is an older-format backup. Only transactions and language/currency/theme are restored; recurring items, custom categories and budget keep their current values.',
   };
 
   const es = {
@@ -799,7 +817,6 @@ String t(String key, String language) {
     'imported': 'Importado.',
     'invalid_import_json': 'Formato JSON inválido.',
     'import_confirm_title': '¿Importar registros?',
-    'import_confirm_message': 'Los registros actuales serán reemplazados.',
     'search': 'Buscar',
     'search_hint': 'Buscar nota o categoría',
     'no_search_results': 'Sin resultados.',
@@ -994,6 +1011,16 @@ String t(String key, String language) {
     'mascot_dog': 'Perro',
     'mascot_minimal_black': 'Negro Mínimal',
     'mascot_cyber_ai': 'Cyber AI',
+    'backup_restore_confirm_title': '¿Restaurar esta copia?',
+    'backup_restore_confirm_message': 'Todos los datos actuales de este dispositivo (movimientos, recurrentes, categorías personalizadas y ajustes) serán reemplazados por esta copia. No se puede deshacer.',
+    'backup_restore_action': 'Restaurar',
+    'backup_restored': 'Copia restaurada.',
+    'backup_transactions': 'movimientos',
+    'backup_err_format': 'No es un archivo de copia de Doni Money.',
+    'backup_err_version': 'Versión de copia no compatible. Actualiza la app.',
+    'backup_err_invalid': 'El archivo está dañado o no es válido.',
+    'backup_err_storage': 'Error al restaurar. Tus datos actuales se conservaron.',
+    'backup_legacy_note': 'Copia en formato antiguo. Solo se restauran los movimientos y el idioma/moneda/tema; los recurrentes, categorías personalizadas y presupuesto se mantienen.',
   };
 
   const zh = {
@@ -1079,7 +1106,6 @@ String t(String key, String language) {
     'imported': '已导入。',
     'invalid_import_json': 'JSON 格式无效。',
     'import_confirm_title': '导入记录？',
-    'import_confirm_message': '当前记录将被替换。',
     'search': '搜索',
     'search_hint': '搜索备注或类别',
     'no_search_results': '无搜索结果。',
@@ -1274,6 +1300,16 @@ String t(String key, String language) {
     'mascot_dog': '狗狗',
     'mascot_minimal_black': '极简黑',
     'mascot_cyber_ai': '赛博AI',
+    'backup_restore_confirm_title': '恢复此备份？',
+    'backup_restore_confirm_message': '此设备上的所有当前数据（交易、定期项目、自定义分类和设置）将被此备份替换，且无法撤销。',
+    'backup_restore_action': '恢复',
+    'backup_restored': '备份已恢复。',
+    'backup_transactions': '笔交易',
+    'backup_err_format': '这不是 Doni Money 备份文件。',
+    'backup_err_version': '不支持此备份版本，请更新应用。',
+    'backup_err_invalid': '备份文件已损坏或无效。',
+    'backup_err_storage': '恢复失败，现有数据已保留。',
+    'backup_legacy_note': '这是旧格式备份。仅恢复交易及语言/货币/主题；定期项目、自定义分类和预算保持当前值。',
   };
 
   const ja = {
@@ -1359,7 +1395,6 @@ String t(String key, String language) {
     'imported': 'インポートしました。',
     'invalid_import_json': 'JSONの形式が正しくありません。',
     'import_confirm_title': '記録をインポートしますか？',
-    'import_confirm_message': '現在の記録は置き換えられます。',
     'search': '検索',
     'search_hint': 'メモまたはカテゴリーで検索',
     'no_search_results': '検索結果がありません。',
@@ -1554,6 +1589,16 @@ String t(String key, String language) {
     'mascot_dog': '犬',
     'mascot_minimal_black': 'ミニマルブラック',
     'mascot_cyber_ai': 'サイバーAI',
+    'backup_restore_confirm_title': 'このバックアップで復元しますか？',
+    'backup_restore_confirm_message': 'この端末の現在のデータ（取引、定期取引、カスタムカテゴリ、設定）はすべてこのバックアップの内容に置き換えられます。元に戻せません。',
+    'backup_restore_action': '復元',
+    'backup_restored': 'バックアップを復元しました。',
+    'backup_transactions': '件の取引',
+    'backup_err_format': 'Doni Money のバックアップファイルではありません。',
+    'backup_err_version': 'このバックアップのバージョンには対応していません。アプリを更新してください。',
+    'backup_err_invalid': 'バックアップファイルが破損しているか無効です。',
+    'backup_err_storage': '復元に失敗しました。既存のデータはそのままです。',
+    'backup_legacy_note': '旧形式のバックアップです。取引と言語・通貨・テーマのみ復元され、定期取引・カスタムカテゴリ・予算は現在の値のままです。',
   };
 
   if (language == 'ko') return ko[key] ?? key;

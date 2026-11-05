@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -35,12 +33,12 @@ class SettingsPage extends StatefulWidget {
   final Future<void> Function() onClear;
   final double monthlyBudget;
   final ValueChanged<double> onBudgetChanged;
-  final Future<Map<String, dynamic>> Function() onGetBackupPayload;
-  final Future<void> Function(List<Map<String, dynamic>> items, Map<String, dynamic>? settings) onApplyImport;
   final List<Map<String, dynamic>> Function() onGetAllItems;
   final String Function() onGetSelectedCurrency;
   final Future<void> Function() onOpenRecurring;
   final Future<void> Function() onOpenCategories;
+  final Future<void> Function() onExportBackup;
+  final Future<void> Function() onRestoreBackup;
   final bool isPremium;
   final VoidCallback onOpenPaywall;
 
@@ -62,12 +60,12 @@ class SettingsPage extends StatefulWidget {
     required this.onClear,
     this.monthlyBudget = 0,
     required this.onBudgetChanged,
-    required this.onGetBackupPayload,
-    required this.onApplyImport,
     required this.onGetAllItems,
     required this.onGetSelectedCurrency,
     required this.onOpenRecurring,
     required this.onOpenCategories,
+    required this.onExportBackup,
+    required this.onRestoreBackup,
     required this.isPremium,
     required this.onOpenPaywall,
   });
@@ -119,8 +117,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> Function() get onExport => widget.onExport;
   Future<void> Function() get onClear => widget.onClear;
   ValueChanged<double> get onBudgetChanged => widget.onBudgetChanged;
-  Future<Map<String, dynamic>> Function() get onGetBackupPayload => widget.onGetBackupPayload;
-  Future<void> Function(List<Map<String, dynamic>>, Map<String, dynamic>?) get onApplyImport => widget.onApplyImport;
   List<Map<String, dynamic>> Function() get onGetAllItems => widget.onGetAllItems;
   String Function() get onGetSelectedCurrency => widget.onGetSelectedCurrency;
   Future<void> Function() get onOpenRecurring => widget.onOpenRecurring;
@@ -193,104 +189,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (ok == true) {
       await onClear();
-    }
-  }
-
-  Future<void> _exportFile(BuildContext context) async {
-    try {
-      final payload = await onGetBackupPayload();
-      final json = const JsonEncoder.withIndent('  ').convert(payload);
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/easy_ledger_backup.json');
-      await file.writeAsString(json);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Doni Money Backup',
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-  }
-
-  Future<void> _importFile(BuildContext context) async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-      if (result == null || result.files.isEmpty) return;
-      final path = result.files.first.path;
-      if (path == null) return;
-      final content = await File(path).readAsString();
-      final decoded = jsonDecode(content);
-
-      List<Map<String, dynamic>> parsedItems;
-      Map<String, dynamic>? parsedSettings;
-
-      if (decoded is List) {
-        parsedItems = List<Map<String, dynamic>>.from(
-          decoded.map((e) => Map<String, dynamic>.from(e as Map)),
-        );
-      } else if (decoded is Map) {
-        final root = Map<String, dynamic>.from(decoded);
-        dynamic rawItems;
-        if (root['data'] is Map) {
-          final data = Map<String, dynamic>.from(root['data'] as Map);
-          rawItems = data['items'];
-          if (data['settings'] is Map) {
-            parsedSettings = Map<String, dynamic>.from(data['settings'] as Map);
-          }
-        } else {
-          rawItems = root['items'];
-          if (root['settings'] is Map) {
-            parsedSettings = Map<String, dynamic>.from(root['settings'] as Map);
-          }
-        }
-        if (rawItems == null) throw const FormatException();
-        parsedItems = List<Map<String, dynamic>>.from(
-          (rawItems as List).map((e) => Map<String, dynamic>.from(e as Map)),
-        );
-      } else {
-        throw const FormatException();
-      }
-
-      if (!context.mounted) return;
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(t('import_confirm_title', language)),
-          content: Text(t('import_confirm_message', language)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(t('cancel', language)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(t('import_data', language)),
-            ),
-          ],
-        ),
-      );
-      if (ok != true) return;
-      await onApplyImport(parsedItems, parsedSettings);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t('imported', language))),
-      );
-    } on FormatException {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t('invalid_import_json', language))),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
     }
   }
 
@@ -1149,7 +1047,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ? t('file_backup_subtitle', language)
               : t('premium_locked_hint', language),
           isLocked: !isPremium,
-          onTap: isPremium ? () => _exportFile(context) : onOpenPaywall,
+          onTap: isPremium ? () => widget.onExportBackup() : onOpenPaywall,
         ),
         const SizedBox(height: 10),
         _settingTile(
@@ -1159,7 +1057,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ? t('file_backup_subtitle', language)
               : t('premium_locked_hint', language),
           isLocked: !isPremium,
-          onTap: isPremium ? () => _importFile(context) : onOpenPaywall,
+          onTap: isPremium ? () => widget.onRestoreBackup() : onOpenPaywall,
         ),
         const SizedBox(height: 10),
         _settingTile(

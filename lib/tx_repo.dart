@@ -115,6 +115,9 @@ class TxRepo extends ChangeNotifier {
     }
   }
 
+  /// Re-reads storage after it was replaced externally (e.g. backup restore).
+  void reloadFromStorage() => notifyListeners();
+
   Future<void> clear() async {
     await Storage.txBox.put('items', <String>[]);
     notifyListeners();
