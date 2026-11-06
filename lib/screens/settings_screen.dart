@@ -13,6 +13,8 @@ import '../storage.dart';
 import '../theme/app_theme.dart';
 import '../services/purchase_service.dart';
 import '../services/icon_service.dart';
+import '../services/icloud_backup_service.dart';
+import '../utils/icloud_backup_text.dart';
 import 'theme_select_screen.dart';
 import 'icon_select_screen.dart';
 
@@ -39,6 +41,9 @@ class SettingsPage extends StatefulWidget {
   final Future<void> Function() onOpenCategories;
   final Future<void> Function() onExportBackup;
   final Future<void> Function() onRestoreBackup;
+  final Future<ICloudBackupStatus> Function() onLoadICloudStatus;
+  final Future<bool> Function() onICloudBackupNow;
+  final Future<bool> Function() onICloudRestore;
   final bool isPremium;
   final VoidCallback onOpenPaywall;
 
@@ -66,6 +71,9 @@ class SettingsPage extends StatefulWidget {
     required this.onOpenCategories,
     required this.onExportBackup,
     required this.onRestoreBackup,
+    required this.onLoadICloudStatus,
+    required this.onICloudBackupNow,
+    required this.onICloudRestore,
     required this.isPremium,
     required this.onOpenPaywall,
   });
@@ -79,9 +87,62 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _currentIcon;
   String _appVersion = '';
 
+  // iCloud backup (Premium). Status is read only for Premium users.
+  ICloudBackupStatus? _icloudStatus;
+  bool _icloudLoading = false;
+  /// i18n key of the running action's progress text, or null.
+  String? _icloudBusyKey;
+
+  Future<void> _loadICloudStatus() async {
+    if (!mounted || !widget.isPremium || _icloudLoading) return;
+    setState(() => _icloudLoading = true);
+    final status = await widget.onLoadICloudStatus(); // never throws
+    if (!mounted) return;
+    setState(() {
+      _icloudStatus = status;
+      _icloudLoading = false;
+    });
+  }
+
+  Future<void> _runICloudAction(Future<bool> Function() action, String busyKey) async {
+    if (!widget.isPremium) {
+      onOpenPaywall();
+      return;
+    }
+    if (_icloudBusyKey != null) return;
+    setState(() => _icloudBusyKey = busyKey);
+    var reload = true;
+    try {
+      reload = await action();
+    } finally {
+      if (mounted) setState(() => _icloudBusyKey = null);
+    }
+    if (reload) await _loadICloudStatus();
+  }
+
+  String get _icloudSubtitle {
+    if (!isPremium) return t('premium_locked_hint', language);
+    if (_icloudBusyKey != null) return t(_icloudBusyKey!, language);
+    final s = _icloudStatus;
+    if (_icloudLoading || s == null) return t('icloud_checking', language);
+    final b = s.backup;
+    if (b == null) return icloudIssueText(s.issue!, language);
+    final summary = backupSummaryText(b, language);
+    return s.isUploaded ? summary : '$summary\n${t('icloud_uploading', language)}';
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isPremium && widget.isPremium) _loadICloudStatus();
+  }
+
   @override
   void initState() {
     super.initState();
+    if (widget.isPremium) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadICloudStatus());
+    }
     IconService.getCurrentIcon().then((v) {
       if (mounted) setState(() => _currentIcon = v);
     });
@@ -1068,6 +1129,36 @@ class _SettingsPageState extends State<SettingsPage> {
               : t('premium_locked_hint', language),
           isLocked: !isPremium,
           onTap: isPremium ? () => _exportCsv(context) : onOpenPaywall,
+        ),
+        const SizedBox(height: 18),
+
+        _sectionTitle(t('icloud_backup', language)),
+        _settingTile(
+          leading: _img('backup'),
+          title: t('icloud_latest', language),
+          subtitle: _icloudSubtitle,
+          isLocked: !isPremium,
+          onTap: isPremium ? _loadICloudStatus : onOpenPaywall,
+        ),
+        const SizedBox(height: 10),
+        _settingTile(
+          leading: _img('backup'),
+          title: t('icloud_backup_now', language),
+          subtitle: isPremium
+              ? t('icloud_backup_now_sub', language)
+              : t('premium_locked_hint', language),
+          isLocked: !isPremium,
+          onTap: () => _runICloudAction(widget.onICloudBackupNow, 'icloud_backing_up'),
+        ),
+        const SizedBox(height: 10),
+        _settingTile(
+          leading: _img('backup'),
+          title: t('icloud_restore', language),
+          subtitle: isPremium
+              ? t('icloud_restore_sub', language)
+              : t('premium_locked_hint', language),
+          isLocked: !isPremium,
+          onTap: () => _runICloudAction(widget.onICloudRestore, 'icloud_checking'),
         ),
         const SizedBox(height: 18),
 

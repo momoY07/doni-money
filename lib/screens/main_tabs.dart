@@ -27,6 +27,9 @@ import 'paywall_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/backup_service.dart';
 import '../services/backup_file_transfer.dart';
+import '../services/icloud_backup_service.dart';
+import '../services/icloud_backup_storage.dart';
+import '../utils/icloud_backup_text.dart';
 
 class MainTabs extends StatefulWidget {
   const MainTabs({super.key});
@@ -412,23 +415,37 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
 
   /// Confirmation text shared by file restore and JSON paste import.
   String _restoreConfirmText(ValidatedBackup b) {
-    final parts = <String>[];
-    final created = b.createdAt?.toLocal();
-    if (created != null) {
-      String two(int v) => v.toString().padLeft(2, '0');
-      parts.add('${created.year}-${two(created.month)}-${two(created.day)} '
-          '${two(created.hour)}:${two(created.minute)}');
-    }
-    parts.add('${b.transactions.length} ${t('backup_transactions', selectedLanguage)}');
     final buf = StringBuffer(t('backup_restore_confirm_message', selectedLanguage))
       ..write('\n\n')
-      ..write(parts.join(' · '));
+      ..write(backupSummaryText(b, selectedLanguage));
     if (b.isLegacy) {
       buf
         ..write('\n\n')
         ..write(t('backup_legacy_note', selectedLanguage));
     }
     return buf.toString();
+  }
+
+  /// Destructive-restore confirmation shared by file and iCloud restore.
+  Future<bool> _confirmRestore(ValidatedBackup b) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('backup_restore_confirm_title', selectedLanguage)),
+        content: Text(_restoreConfirmText(b)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('cancel', selectedLanguage)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('backup_restore_action', selectedLanguage)),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   void _showSnack(String text) {
@@ -471,25 +488,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       return;
     }
     if (!mounted) return;
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t('backup_restore_confirm_title', selectedLanguage)),
-        content: Text(_restoreConfirmText(preview)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(t('cancel', selectedLanguage)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(t('backup_restore_action', selectedLanguage)),
-          ),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
+    if (!await _confirmRestore(preview) || !mounted) return;
 
     try {
       // Validates again internally; nothing is written unless it passes.
@@ -501,6 +500,58 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     if (!mounted) return;
     _reloadAfterRestore();
     _showSnack(t('backup_restored', selectedLanguage));
+  }
+
+  // ── Premium iCloud backup (manual, Phase 1) ──────────────────
+
+  ICloudBackupService get _icloud => ICloudBackupService(
+        storage: const MethodChannelICloudBackupStorage(),
+        backupService: BackupService(),
+        isPremium: () => context.read<PurchaseService>().isPremium,
+      );
+
+  Future<ICloudBackupStatus> loadICloudStatus() => _icloud.loadStatus();
+
+  /// Returns true when the Settings status should be reloaded.
+  Future<bool> icloudBackupNow() async {
+    if (!context.read<PurchaseService>().isPremium) {
+      await openPaywall();
+      return false;
+    }
+    try {
+      final r = await _icloud.backUpNow(appVersion: await _appVersion());
+      _showSnack(t(r.isUploaded ? 'icloud_backup_done' : 'icloud_backup_saved_pending', selectedLanguage));
+    } on ICloudBackupException catch (e) {
+      _showSnack(icloudIssueText(e.issue, selectedLanguage));
+    }
+    return true;
+  }
+
+  Future<bool> icloudRestore() async {
+    if (!context.read<PurchaseService>().isPremium) {
+      await openPaywall();
+      return false;
+    }
+    final service = _icloud;
+    final PreparedCloudRestore prepared;
+    try {
+      // Find → download → validate. Nothing is written here.
+      prepared = await service.prepareRestore();
+    } on ICloudBackupException catch (e) {
+      _showSnack(icloudIssueText(e.issue, selectedLanguage));
+      return true;
+    }
+    if (!mounted || !await _confirmRestore(prepared.backup) || !mounted) return false;
+    try {
+      await service.restore(prepared);
+    } on ICloudBackupException catch (e) {
+      _showSnack(icloudIssueText(e.issue, selectedLanguage));
+      return false;
+    }
+    if (!mounted) return false;
+    _reloadAfterRestore();
+    _showSnack(t('backup_restored', selectedLanguage));
+    return false;
   }
 
   /// Re-reads restored values so every tab shows them without a restart.
@@ -989,6 +1040,9 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         onOpenCategories: openCategoriesScreen,
         onExportBackup: exportBackupFile,
         onRestoreBackup: restoreBackupFile,
+        onLoadICloudStatus: loadICloudStatus,
+        onICloudBackupNow: icloudBackupNow,
+        onICloudRestore: icloudRestore,
         isPremium: context.watch<PurchaseService>().isPremium,
         onOpenPaywall: openPaywall,
       ),
