@@ -19,8 +19,10 @@ class PurchaseService extends ChangeNotifier {
 
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
-  bool get isPremium => _isPremium || _isDevMode;
-  bool get isDevMode => _isDevMode;
+  // Developer mode is a Debug-only testing aid; Release builds ignore it,
+  // including a dev_mode flag left over from an earlier install.
+  bool get isPremium => _isPremium || isDevMode;
+  bool get isDevMode => kDebugMode && _isDevMode;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<ProductDetails> get products => _products;
@@ -121,6 +123,7 @@ class PurchaseService extends ChangeNotifier {
   }
 
   Future<void> forceDevMode() async {
+    if (!kDebugMode) return;
     _isDevMode = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dev_mode', true);

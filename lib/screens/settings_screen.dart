@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -185,6 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
   VoidCallback get onOpenPaywall => widget.onOpenPaywall;
 
   Future<void> _handleVersionTap() async {
+    if (!kDebugMode) return;
     _versionTapCount++;
     if (_versionTapCount < 7) return;
     _versionTapCount = 0;
