@@ -2,7 +2,7 @@ name: simple_ledger
 description: "Doni Money - Simple and beautiful finance tracker"
 publish_to: 'none'
 
-version: 1.5.0+13
+version: 1.6.0+13
 
 environment:
   sdk: ^3.11.1
