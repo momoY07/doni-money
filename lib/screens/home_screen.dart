@@ -32,6 +32,9 @@ class HomePage extends StatelessWidget {
   final Map<String, double> cumulativeBalanceByCurrency;
   final Map<String, double> carryoverByCurrency;
 
+  /// Premium companion card (or its locked preview), shown under the summary.
+  final Widget? companion;
+
   const HomePage({
     super.key,
     required this.income,
@@ -57,6 +60,7 @@ class HomePage extends StatelessWidget {
     required this.hasHistoryMixedCurrencies,
     required this.cumulativeBalanceByCurrency,
     required this.carryoverByCurrency,
+    this.companion,
   });
 
   bool get _isMB => selectedTheme == 'minimal_black';
@@ -708,6 +712,10 @@ class HomePage extends StatelessWidget {
               buildMixedCurrencyNotice(language: language, currencies: monthCurrencies),
               const SizedBox(height: 16),
               _buildMixedCurrencySummaryCard(),
+            ],
+            if (companion != null) ...[
+              const SizedBox(height: 12),
+              companion!,
             ],
             const SizedBox(height: 16),
             // ── Add entry button (outline for CA) ──
