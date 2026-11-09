@@ -33,6 +33,8 @@ import '../utils/icloud_backup_text.dart';
 import '../companion/companion_card.dart';
 import '../companion/companion_character.dart';
 import '../companion/companion_data.dart';
+import '../companion/companion_prefs.dart';
+import '../companion/insight.dart';
 import '../companion/money_insight_engine.dart';
 
 class MainTabs extends StatefulWidget {
@@ -55,7 +57,15 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
 
   /// Companion picked by the user; null = follow the theme's mascot.
   CompanionCharacter? _companionChoice;
-  static const _companionLastInsightKey = 'companionLastInsight';
+  final _companionPrefs = CompanionPrefs(Storage.txBox);
+
+  CompanionCharacter get _companion =>
+      _companionChoice ?? CompanionCharacter.defaultForTheme(selectedTheme);
+
+  void _setCompanion(CompanionCharacter c) {
+    setState(() => _companionChoice = c);
+    _companionPrefs.setChoice(c);
+  }
 
   /// "Saved" snackbar with the app's otter graphic (same in every theme).
   SnackBar _savedSnackBar() {
@@ -118,8 +128,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     final budget =
         (Storage.txBox.get('monthlyBudget', defaultValue: 0.0) as num)
             .toDouble();
-    final companion =
-        CompanionCharacter.fromId(Storage.txBox.get(CompanionCharacter.storageKey));
+    final companion = _companionPrefs.explicitChoice;
 
     var enabled = Storage.txBox.get('lockEnabled', defaultValue: false) as bool;
     final savedPasscode =
@@ -385,28 +394,25 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
   Widget _buildCompanion(List<TxItem> tx) {
     final isPremium = context.watch<PurchaseService>().isPremium;
     // Insights are only computed for Premium users; all data stays local.
-    final insights = isPremium
-        ? const MoneyInsightEngine().generate(buildInsightInput(
-            transactions: tx,
-            recurring: RecurringItem.loadAll(),
-            monthlyBudget: _monthlyBudget,
-            selectedCurrency: selectedCurrency,
-            now: DateTime.now(),
-          ))
-        : const <Never>[];
+    InsightInput input() => buildInsightInput(
+          transactions: tx,
+          recurring: RecurringItem.loadAll(),
+          monthlyBudget: _monthlyBudget,
+          selectedCurrency: selectedCurrency,
+          now: DateTime.now(),
+        );
+    const engine = MoneyInsightEngine();
+    final insights = isPremium ? engine.generate(input()) : const <Insight>[];
     return CompanionCard(
       language: selectedLanguage,
       selectedTheme: selectedTheme,
       isPremium: isPremium,
-      character: _companionChoice ?? CompanionCharacter.defaultForTheme(selectedTheme),
+      character: _companion,
       insights: insights,
-      lastShownId: Storage.txBox.get(_companionLastInsightKey) as String?,
-      onShown: (id) => Storage.txBox.put(_companionLastInsightKey, id),
+      lastShownId: _companionPrefs.lastShownId,
+      onShown: _companionPrefs.setLastShownId,
       onOpenPaywall: openPaywall,
-      onChangeCharacter: (c) {
-        setState(() => _companionChoice = c);
-        Storage.txBox.put(CompanionCharacter.storageKey, c.id);
-      },
+      answerFor: isPremium ? (q) => engine.answer(q, input()) : null,
     );
   }
 
@@ -608,6 +614,8 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       _monthlyBudget =
           (Storage.txBox.get('monthlyBudget', defaultValue: 0.0) as num)
               .toDouble();
+      // Restored backups may carry a companion; otherwise this is unchanged.
+      _companionChoice = _companionPrefs.explicitChoice;
     });
   }
 
@@ -1087,6 +1095,8 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         onICloudRestore: icloudRestore,
         isPremium: context.watch<PurchaseService>().isPremium,
         onOpenPaywall: openPaywall,
+        companionCharacter: _companion,
+        onCompanionChanged: _setCompanion,
       ),
     ];
 

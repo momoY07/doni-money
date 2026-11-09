@@ -16,6 +16,8 @@ import '../services/purchase_service.dart';
 import '../services/icon_service.dart';
 import '../services/icloud_backup_service.dart';
 import '../utils/icloud_backup_text.dart';
+import '../companion/companion_character.dart';
+import '../companion/companion_picker.dart';
 import 'theme_select_screen.dart';
 import 'icon_select_screen.dart';
 
@@ -48,6 +50,10 @@ class SettingsPage extends StatefulWidget {
   final bool isPremium;
   final VoidCallback onOpenPaywall;
 
+  /// Companion currently shown on Home (explicit choice or theme default).
+  final CompanionCharacter companionCharacter;
+  final ValueChanged<CompanionCharacter> onCompanionChanged;
+
   const SettingsPage({
     super.key,
     required this.language,
@@ -77,6 +83,8 @@ class SettingsPage extends StatefulWidget {
     required this.onICloudRestore,
     required this.isPremium,
     required this.onOpenPaywall,
+    required this.companionCharacter,
+    required this.onCompanionChanged,
   });
 
   @override
@@ -415,6 +423,51 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     final path = (isDog ? _dogImgs[key] : _otterImgs[key]) ?? _otterImgs[key]!;
     return Image.asset(path, width: 30, height: 30, fit: BoxFit.contain);
+  }
+
+  /// Premium "Money Companion" picker. Free users see the previews; any tap
+  /// opens the existing paywall.
+  Widget _companionSection() {
+    final dark = _isCA || _isMB;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
+      decoration: BoxDecoration(
+        color: _isCA ? const Color(0xFF0F0F2A) : (_isMB ? const Color(0xFF1E1E1E) : Colors.white),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _isCA ? const Color(0xFF2A2A5A) : (_isMB ? const Color(0xFF333333) : _line)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+            child: Text(
+              isPremium
+                  ? t('companion_settings_desc', language)
+                  : t('premium_locked_hint', language),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _isCA ? const Color(0xFF6B6B9A) : (_isMB ? const Color(0xFF888888) : _textSub),
+              ),
+            ),
+          ),
+          CompanionPicker(
+            language: language,
+            selected: widget.companionCharacter,
+            locked: !isPremium,
+            dark: dark,
+            accent: _isCA
+                ? const Color(0xFF7C7CFF)
+                : (_isMB ? Colors.white : const Color(0xFF4A90C2)),
+            border: _isCA ? const Color(0xFF2A2A5A) : (_isMB ? const Color(0xFF333333) : _line),
+            tileBg: _isCA ? const Color(0xFF1A1A3A) : (_isMB ? const Color(0xFF2A2A2A) : _softBg),
+            textColor: dark ? Colors.white : _textMain,
+            onSelect: (c) => isPremium ? widget.onCompanionChanged(c) : onOpenPaywall(),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _sectionTitle(String text) {
@@ -1038,6 +1091,10 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ),
+        const SizedBox(height: 18),
+
+        _sectionTitle(t('companion_settings_title', language)),
+        _companionSection(),
         const SizedBox(height: 18),
 
         _sectionTitle(t('security', language)),
