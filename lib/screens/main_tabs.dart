@@ -30,6 +30,10 @@ import '../services/backup_file_transfer.dart';
 import '../services/icloud_backup_service.dart';
 import '../services/icloud_backup_storage.dart';
 import '../utils/icloud_backup_text.dart';
+import '../companion/companion_card.dart';
+import '../companion/companion_character.dart';
+import '../companion/companion_data.dart';
+import '../companion/money_insight_engine.dart';
 
 class MainTabs extends StatefulWidget {
   const MainTabs({super.key});
@@ -48,6 +52,10 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
 
   String selectedTheme = 'cream';
   double _monthlyBudget = 0;
+
+  /// Companion picked by the user; null = follow the theme's mascot.
+  CompanionCharacter? _companionChoice;
+  static const _companionLastInsightKey = 'companionLastInsight';
 
   /// "Saved" snackbar with the app's otter graphic (same in every theme).
   SnackBar _savedSnackBar() {
@@ -110,6 +118,8 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
     final budget =
         (Storage.txBox.get('monthlyBudget', defaultValue: 0.0) as num)
             .toDouble();
+    final companion =
+        CompanionCharacter.fromId(Storage.txBox.get(CompanionCharacter.storageKey));
 
     var enabled = Storage.txBox.get('lockEnabled', defaultValue: false) as bool;
     final savedPasscode =
@@ -129,6 +139,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       isUnlocked = !enabled;
       selectedTheme = theme;
       _monthlyBudget = budget;
+      _companionChoice = companion;
       _prefsLoaded = true;
     });
 
@@ -367,6 +378,36 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         ),
       );
     }
+  }
+
+  // ───────────────────────── Companion (Premium) ─────────────────────────
+
+  Widget _buildCompanion(List<TxItem> tx) {
+    final isPremium = context.watch<PurchaseService>().isPremium;
+    // Insights are only computed for Premium users; all data stays local.
+    final insights = isPremium
+        ? const MoneyInsightEngine().generate(buildInsightInput(
+            transactions: tx,
+            recurring: RecurringItem.loadAll(),
+            monthlyBudget: _monthlyBudget,
+            selectedCurrency: selectedCurrency,
+            now: DateTime.now(),
+          ))
+        : const <Never>[];
+    return CompanionCard(
+      language: selectedLanguage,
+      selectedTheme: selectedTheme,
+      isPremium: isPremium,
+      character: _companionChoice ?? CompanionCharacter.defaultForTheme(selectedTheme),
+      insights: insights,
+      lastShownId: Storage.txBox.get(_companionLastInsightKey) as String?,
+      onShown: (id) => Storage.txBox.put(_companionLastInsightKey, id),
+      onOpenPaywall: openPaywall,
+      onChangeCharacter: (c) {
+        setState(() => _companionChoice = c);
+        Storage.txBox.put(CompanionCharacter.storageKey, c.id);
+      },
+    );
   }
 
   Future<void> openRecurringScreen() async {
@@ -959,6 +1000,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         hasHistoryMixedCurrencies: hasHistoryMixedCurrencies,
         cumulativeBalanceByCurrency: cumulativeBalanceByCurrency,
         carryoverByCurrency: carryoverByCurrency,
+        companion: _buildCompanion(tx),
       ),
       TransactionsPage(
         items: tx,
