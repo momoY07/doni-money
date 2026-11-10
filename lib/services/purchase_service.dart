@@ -11,6 +11,10 @@ class PurchaseService extends ChangeNotifier {
       'com.sungwoong.easyfinancialledger.premium.yearly';
   static const Set<String> _productIds = {monthlyId, yearlyId};
 
+  /// Subscription products that unlock Premium (also checked server-side
+  /// for AI Conversation).
+  static const Set<String> premiumProductIds = _productIds;
+
   bool _isPremium = false;
   bool _isDevMode = false;
   bool _isLoading = false;

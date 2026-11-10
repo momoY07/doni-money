@@ -6,6 +6,7 @@ import '../companion/companion_text.dart';
 import '../companion/insight.dart';
 import '../companion/money_insight_engine.dart';
 import 'ai_context.dart';
+import 'ai_entitlement.dart';
 import 'ai_models.dart';
 
 /// Answers a companion question. The UI and controller don't know or care
@@ -33,6 +34,7 @@ class RemoteAiCompanionService implements AiCompanionService {
   RemoteAiCompanionService({
     required this.endpoint,
     required this.installId,
+    required this.entitlement,
     AiHttpPost? post,
     this.timeout = const Duration(seconds: 20),
     this.maxRetries = 1,
@@ -42,6 +44,9 @@ class RemoteAiCompanionService implements AiCompanionService {
 
   /// Random per-install id used only for server-side rate limiting.
   final String installId;
+
+  /// App Store-signed proof of Premium, sent with every request.
+  final AiEntitlementProof entitlement;
   final Duration timeout;
   final int maxRetries;
   final AiHttpPost _post;
@@ -60,11 +65,14 @@ class RemoteAiCompanionService implements AiCompanionService {
     }
     final body = jsonEncode(request.toJson());
     if (utf8.encode(body).length > maxBodyBytes) throw const AiException(AiFailure.blocked);
+    // No verifiable subscription: don't send anything.
+    final proof = await entitlement();
+    if (proof == null || proof.isEmpty) throw const AiException(AiFailure.notEntitled);
 
     var attempt = 0;
     while (true) {
       try {
-        return await _once(url, body);
+        return await _once(url, body, proof);
       } on AiException catch (e) {
         if (!e.isTransient || attempt >= maxRetries) rethrow;
         attempt++;
@@ -72,12 +80,16 @@ class RemoteAiCompanionService implements AiCompanionService {
     }
   }
 
-  Future<AiReply> _once(Uri url, String body) async {
+  Future<AiReply> _once(Uri url, String body, String proof) async {
     final AiHttpResponse res;
     try {
       res = await _post(
         url,
-        {'Content-Type': 'application/json', 'X-Install-Id': installId},
+        {
+          'Content-Type': 'application/json',
+          'X-Install-Id': installId,
+          'X-Apple-Signed-Transaction': proof,
+        },
         body,
         timeout,
       );
@@ -91,6 +103,7 @@ class RemoteAiCompanionService implements AiCompanionService {
       throw const AiException(AiFailure.unavailable);
     }
 
+    if (res.statusCode == 403) throw const AiException(AiFailure.notEntitled);
     if (res.statusCode == 429) throw const AiException(AiFailure.rateLimited);
     if (res.statusCode == 504) throw const AiException(AiFailure.timeout);
     if (res.statusCode != 200) throw const AiException(AiFailure.unavailable);

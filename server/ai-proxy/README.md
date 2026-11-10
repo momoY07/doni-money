@@ -11,12 +11,26 @@ app (aggregated summary + question) ──HTTPS──▶ proxy ──▶ OpenAI 
                                                ◀── small validated reply only
 ```
 
-No dependencies: Node 20+ built-ins only (`http`, `fetch`, `node:test`).
+Node 20+. One dependency: Apple's official `@apple/app-store-server-library`
+(verifies App Store-signed transactions for the Premium gate).
+
+Deployment: see [DEPLOY.md](DEPLOY.md).
 
 ## Endpoint
 
-`POST /v1/companion` with `Content-Type: application/json` and an optional
-`X-Install-Id` header (32 hex chars, random per app install, rate limiting only).
+`POST /v1/companion` with `Content-Type: application/json`,
+`X-Apple-Signed-Transaction` (required: the App Store-signed JWS of an active
+Premium subscription, from StoreKit 2) and an optional `X-Install-Id`
+(32 hex chars, random per app install, rate limiting only).
+
+## Premium gate
+
+`src/entitlement.js` verifies the JWS with Apple's official library (Apple
+Root CA - G3 chain, online revocation checks, bundle id, environment), then
+requires a Premium product id, no revocation and a future expiry. Xcode and
+local StoreKit-testing transactions are never accepted. Missing setup (no
+root certificate) closes the gate (`503 not_configured`); it never opens it.
+Rate limits are keyed by the subscription's `originalTransactionId`.
 `GET /healthz` returns `{"ok":true}`.
 
 Request (anything else, including unknown keys, is rejected with `400`):
@@ -54,7 +68,7 @@ Reply (`200`):
 ```
 
 Errors are generic and never contain provider text or request data:
-`400 invalid_request`, `413 payload_too_large`, `415`, `429 rate_limited | daily_limit`,
+`400 invalid_request`, `403 not_entitled`, `413 payload_too_large`, `415`, `429 rate_limited | daily_limit`,
 `502 unavailable`, `503 not_configured`, `504 unavailable` (timeout).
 
 ## Configuration
@@ -72,6 +86,15 @@ Errors are generic and never contain provider text or request data:
 | `RATE_PER_DAY` | `60` | Per install id and per IP. |
 | `DAILY_CEILING` | `5000` | All clients together, per UTC day. |
 | `TRUST_PROXY` | `0` | `1` only behind a load balancer that sets `X-Forwarded-For`. |
+| `NODE_ENV` | | `production` on the server (forbids disabling the Premium gate). |
+| `APPLE_BUNDLE_ID` | `com.sungwoong.easyfinancialledger` | |
+| `APPLE_APP_APPLE_ID` | (none) | Numeric App Store Apple ID. Required to accept Production purchases. |
+| `APPLE_ENVIRONMENTS` | `Production,Sandbox` | Sandbox covers TestFlight, Xcode device builds and App Review. |
+| `PREMIUM_PRODUCT_IDS` | the monthly and yearly ids | Comma-separated. |
+| `APPLE_ROOT_CERTS_DIR` | `./certs` | Filled by `npm run fetch-apple-roots`. |
+| `APPLE_ONLINE_CHECKS` | `1` | Certificate revocation checks. |
+| `ENTITLEMENT_CACHE_SECONDS` | `600` | |
+| `ENTITLEMENT_REQUIRED` | `1` | `0` only for local development; refused in production. |
 
 Copy `.env.example` for reference. Never commit a real `.env` (it is git-ignored).
 
@@ -89,10 +112,10 @@ Mac).
 
 ## Deploy
 
-Any Node 20+ host with HTTPS works (for example Render, Fly.io, Google Cloud
-Run, Railway). Steps:
+Step-by-step for Render: [DEPLOY.md](DEPLOY.md). In general, any Node 20+
+host with HTTPS works. Steps:
 
-1. Deploy this folder (`npm start`, no install step needed).
+1. Deploy this folder: build `npm ci && npm run fetch-apple-roots`, start `npm start`.
 2. Set `OPENAI_API_KEY` in the host's secret manager, plus any limits above.
    Set `TRUST_PROXY=1` if the host terminates TLS in front of the app.
 3. Run **one** instance: rate limits are in memory. For several instances,
@@ -119,7 +142,8 @@ Run, Railway). Steps:
 
 ## Known limits (Phase 3A)
 
-- The proxy cannot verify Premium: there is no receipt or account check, so
-  any client that knows the URL can call it within the rate limits. Planned
-  for Phase 3B: App Attest and/or StoreKit signed-transaction verification.
-- Rate limits and the daily ceiling reset when the process restarts.
+- A valid subscription proof can be replayed by its holder until it expires;
+  limits are per subscriber, so that only spends their own quota. App Attest
+  would additionally bind requests to genuine app installs (Phase 3B).
+- Rate limits and the daily ceiling are in memory: one instance only, reset on
+  restart.

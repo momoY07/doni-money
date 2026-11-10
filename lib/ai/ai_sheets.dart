@@ -151,6 +151,7 @@ String aiFailureText(AiFailure f, String language) => switch (f) {
       AiFailure.timeout => t('ai_error_timeout', language),
       AiFailure.rateLimited => t('ai_error_rate_limited', language),
       AiFailure.notConfigured => t('ai_error_not_configured', language),
+      AiFailure.notEntitled => t('ai_error_not_entitled', language),
       AiFailure.unavailable || AiFailure.malformed || AiFailure.blocked =>
         t('ai_error_generic', language),
     };

@@ -11,6 +11,9 @@ import UIKit
     if let registrar = self.registrar(forPlugin: "ICloudBackupPlugin") {
       ICloudBackupPlugin.register(with: registrar)
     }
+    if let registrar = self.registrar(forPlugin: "EntitlementPlugin") {
+      EntitlementPlugin.register(with: registrar)
+    }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

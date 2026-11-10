@@ -1,3 +1,4 @@
+import { createEntitlementChecker, EntitlementError } from './entitlement.js';
 import { askOpenAI, UpstreamError } from './openai.js';
 import { RateLimiter } from './rateLimit.js';
 import { ValidationError, validateRequest } from './schema.js';
@@ -9,7 +10,8 @@ const INSTALL_ID = /^[0-9a-f]{32}$/;
  * code, latency): never questions, financial data, answers or provider
  * payloads.
  */
-export function createApp({ config, fetchImpl = fetch, log = defaultLog, limiter } = {}) {
+export function createApp({ config, fetchImpl = fetch, log = defaultLog, limiter, entitlement } = {}) {
+  const checkEntitlement = entitlement ?? createEntitlementChecker({ config });
   const rate = limiter ?? new RateLimiter({
     perMinute: config.ratePerMinute,
     perDay: config.ratePerDay,
@@ -18,7 +20,7 @@ export function createApp({ config, fetchImpl = fetch, log = defaultLog, limiter
 
   return async function handle(req, res) {
     const started = Date.now();
-    const finish = (status, payload, code) => {
+    const finish = (status, payload, code, extra) => {
       const body = JSON.stringify(payload);
       res.writeHead(status, {
         'Content-Type': 'application/json; charset=utf-8',
@@ -26,7 +28,7 @@ export function createApp({ config, fetchImpl = fetch, log = defaultLog, limiter
         'Content-Length': Buffer.byteLength(body),
       });
       res.end(body);
-      log({ event: 'ai_request', status, code: code ?? 'ok', latencyMs: Date.now() - started });
+      log({ event: 'ai_request', status, code: code ?? 'ok', latencyMs: Date.now() - started, ...extra });
     };
 
     if (req.method === 'GET' && req.url === '/healthz') {
@@ -55,15 +57,29 @@ export function createApp({ config, fetchImpl = fetch, log = defaultLog, limiter
       return finish(400, { error: 'invalid_request' }, 'invalid_request');
     }
 
+    // Premium must be proven with an App Store-signed transaction.
+    let subject;
+    try {
+      ({ subject } = await checkEntitlement(req.headers['x-apple-signed-transaction']));
+    } catch (e) {
+      if (e instanceof EntitlementError && e.code === 'not_configured') {
+        return finish(503, { error: 'not_configured' }, 'entitlement_not_configured');
+      }
+      const code = e instanceof EntitlementError ? e.code : 'error';
+      return finish(403, { error: 'not_entitled' }, `entitlement_${code}`);
+    }
+
     const installId = String(req.headers['x-install-id'] ?? '');
     const keys = [`ip:${clientIp(req, config)}`];
+    if (subject) keys.push(`sub:${subject}`);
     if (INSTALL_ID.test(installId)) keys.push(`id:${installId}`);
     const limited = rate.check(keys);
     if (limited) return finish(429, { error: limited }, limited);
 
     try {
-      const reply = await askOpenAI(body, config, fetchImpl);
-      return finish(200, reply);
+      const { reply, usage } = await askOpenAI(body, config, fetchImpl);
+      // Safe metadata only: model and token counts, never content.
+      return finish(200, reply, 'ok', usage);
     } catch (e) {
       if (e instanceof UpstreamError) {
         const status = e.code === 'timeout' ? 504 : e.code === 'rate_limited' ? 429 : 502;

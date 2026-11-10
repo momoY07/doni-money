@@ -9,6 +9,11 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "fetch-apple-roots": "node scripts/fetch-apple-roots.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@apple/app-store-server-library": "3.1.0"
   }
 }

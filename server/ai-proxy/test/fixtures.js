@@ -35,7 +35,22 @@ export const testConfig = Object.freeze({
   ratePerDay: 1000,
   dailyCeiling: 10000,
   trustProxy: false,
+  production: false,
+  entitlementRequired: true,
+  appleBundleId: 'com.sungwoong.easyfinancialledger',
+  appleAppAppleId: 1234567890,
+  appleEnvironments: ['Production', 'Sandbox'],
+  premiumProductIds: [
+    'com.sungwoong.easyfinancialledger.premium.monthly',
+    'com.sungwoong.easyfinancialledger.premium.yearly',
+  ],
+  appleRootCertsDir: '/nonexistent',
+  appleOnlineChecks: true,
+  entitlementCacheSeconds: 600,
 });
+
+/** Entitlement stub for HTTP tests: a verified subscriber. */
+export const allowEntitlement = async () => ({ subject: 'test-original-transaction' });
 
 /** A Responses API reply carrying [reply] as structured output text. */
 export function openAiResponse(reply, { status = 'completed' } = {}) {

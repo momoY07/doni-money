@@ -9,7 +9,7 @@ import { buildInstructions, PERSONAS } from '../src/prompt.js';
 import { RateLimiter } from '../src/rateLimit.js';
 import { validateReply, validateRequest } from '../src/schema.js';
 import {
-  fakeFetch, goodReply, jsonResponse, openAiResponse, testConfig, validRequest,
+  allowEntitlement, fakeFetch, goodReply, jsonResponse, openAiResponse, testConfig, validRequest,
 } from './fixtures.js';
 
 // ─────────────────────────── HTTP harness ───────────────────────────
@@ -20,10 +20,11 @@ let fetchStub;
 let logs;
 let config = testConfig;
 let limiter;
+let entitlement;
 
 before(async () => {
   server = http.createServer((req, res) =>
-    createApp({ config, fetchImpl: fetchStub, log: (e) => logs.push(e), limiter })(req, res));
+    createApp({ config, fetchImpl: fetchStub, log: (e) => logs.push(e), limiter, entitlement })(req, res));
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
@@ -32,6 +33,7 @@ beforeEach(() => {
   logs = [];
   config = testConfig;
   limiter = undefined;
+  entitlement = allowEntitlement;
   fetchStub = fakeFetch(() => jsonResponse(200, openAiResponse(goodReply)));
 });
 
@@ -201,8 +203,9 @@ describe('logging', () => {
     await post(validRequest());
     await post({ bad: true });
     assert.equal(logs.length, 3);
+    const allowed = ['code', 'event', 'inputTokens', 'latencyMs', 'model', 'outputTokens', 'status'];
     for (const entry of logs) {
-      assert.deepEqual(Object.keys(entry).sort(), ['code', 'event', 'latencyMs', 'status']);
+      assert.ok(Object.keys(entry).every((k) => allowed.includes(k)), JSON.stringify(Object.keys(entry)));
       const s = JSON.stringify(entry);
       for (const word of ['Coffee', '4242', '1234.5', 'secret', 'budget', 'USD']) {
         assert.ok(!s.includes(word), `${word} in ${s}`);

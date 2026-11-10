@@ -34,6 +34,7 @@ import '../ai/ai_chat_controller.dart';
 import '../ai/ai_companion_service.dart';
 import '../ai/ai_config.dart';
 import '../ai/ai_context.dart';
+import '../ai/ai_entitlement.dart';
 import '../ai/ai_prefs.dart';
 import '../ai/ai_sheets.dart';
 import '../companion/companion_card.dart';
@@ -425,6 +426,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       remote: RemoteAiCompanionService(
         endpoint: AiConfig.endpoint,
         installId: _aiPrefs.installId(),
+        entitlement: StoreKitEntitlement.premiumTransaction,
       ),
       local: LocalAiCompanionService(input: _insightInput),
       isPremium: () => purchases.isPremium,

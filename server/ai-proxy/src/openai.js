@@ -34,7 +34,10 @@ export function buildResponsesBody(req, config) {
   };
 }
 
-/** Calls OpenAI and returns a validated reply. Throws UpstreamError. */
+/**
+ * Calls OpenAI and returns `{ reply, usage }`: a validated reply plus safe
+ * usage metadata (model, token counts). Throws UpstreamError.
+ */
 export async function askOpenAI(req, config, fetchImpl = fetch) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.upstreamTimeoutMs);
@@ -77,9 +80,16 @@ export async function askOpenAI(req, config, fetchImpl = fetch) {
   }
   if (text === null) throw new UpstreamError('malformed', 502);
 
+  let reply;
   try {
-    return validateReply(JSON.parse(text));
+    reply = validateReply(JSON.parse(text));
   } catch {
     throw new UpstreamError('malformed', 502);
   }
+  const usage = {
+    model: typeof data.model === 'string' ? data.model : config.model,
+    inputTokens: Number.isInteger(data.usage?.input_tokens) ? data.usage.input_tokens : null,
+    outputTokens: Number.isInteger(data.usage?.output_tokens) ? data.usage.output_tokens : null,
+  };
+  return { reply, usage };
 }

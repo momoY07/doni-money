@@ -447,11 +447,14 @@ void main() {
         question: q, language: 'en', character: CompanionCharacter.cyber, context: ctx(AiTopic.overview));
     const okBody = '{"answer":"Fine.","mood":"neutral","followUps":[],"usedContext":["month"]}';
 
-    RemoteAiCompanionService service(List<Object> script, {List<Map<String, Object?>>? seen}) {
+    const fakeProof = 'eyJhbGciOiJFUzI1NiJ9.fake-test-proof.sig';
+    RemoteAiCompanionService service(List<Object> script,
+        {List<Map<String, Object?>>? seen, String? proof = fakeProof}) {
       var i = 0;
       return RemoteAiCompanionService(
         endpoint: url,
         installId: 'a' * 32,
+        entitlement: () async => proof,
         post: (u, headers, body, timeout) async {
           seen?.add({'url': u, 'headers': headers, 'body': jsonDecode(body)});
           final step = script[i++];
@@ -467,6 +470,7 @@ void main() {
       expect(r.answer, 'Fine.');
       final headers = seen.single['headers'] as Map;
       expect(headers['X-Install-Id'], 'a' * 32);
+      expect(headers['X-Apple-Signed-Transaction'], fakeProof);
       expect(headers.keys.any((k) => k.toString().toLowerCase() == 'authorization'), isFalse,
           reason: 'no provider key in the app');
     });
@@ -506,9 +510,27 @@ void main() {
     });
 
     test('no endpoint configured → notConfigured, no request', () async {
-      final s = RemoteAiCompanionService(endpoint: null, installId: 'a' * 32, post: (_, _, _, _) => throw StateError('called'));
+      final s = RemoteAiCompanionService(
+          endpoint: null, installId: 'a' * 32, entitlement: () async => fakeProof,
+          post: (_, _, _, _) => throw StateError('called'));
       await expectLater(s.ask(req()),
           throwsA(isA<AiException>().having((e) => e.failure, 'f', AiFailure.notConfigured)));
+    });
+
+    test('no App Store proof → notEntitled and nothing is sent', () async {
+      final seen = <Map<String, Object?>>[];
+      for (final proof in [null, '']) {
+        await expectLater(service(const [], seen: seen, proof: proof).ask(req()),
+            throwsA(isA<AiException>().having((e) => e.failure, 'f', AiFailure.notEntitled)));
+      }
+      expect(seen, isEmpty);
+    });
+
+    test('server rejecting the proof (403) → notEntitled, not retried', () async {
+      final seen = <Map<String, Object?>>[];
+      await expectLater(service([const AiHttpResponse(403, '{"error":"not_entitled"}')], seen: seen).ask(req()),
+          throwsA(isA<AiException>().having((e) => e.failure, 'f', AiFailure.notEntitled)));
+      expect(seen, hasLength(1));
     });
 
     test('AiConfig accepts HTTPS only (HTTP only for localhost in debug)', () {

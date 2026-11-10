@@ -116,6 +116,10 @@ class AiReply {
 enum AiFailure {
   /// No proxy URL configured in this build.
   notConfigured,
+
+  /// No App Store-verifiable Premium subscription (none on this Apple ID,
+  /// iOS < 15, or the server rejected the proof).
+  notEntitled,
   offline,
   timeout,
   rateLimited,
