@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hive/hive.dart';
 
+import '../companion/companion_character.dart';
 import '../storage.dart';
 
 /// Why a backup was rejected. UI maps these to user-facing messages.
@@ -70,6 +71,12 @@ class ValidatedBackup {
   final double? monthlyBudget;
   final bool? balanceCarryoverEnabled;
 
+  /// Money Companion chosen by the user (`otter` / `dog` / `cyber`), or null
+  /// when the backup has none (older files, legacy files, never chosen) or
+  /// the stored value isn't recognised. Null leaves the device's current
+  /// choice alone.
+  final String? companionCharacter;
+
   const ValidatedBackup({
     required this.source,
     required this.schemaVersion,
@@ -84,6 +91,7 @@ class ValidatedBackup {
     required this.theme,
     required this.monthlyBudget,
     required this.balanceCarryoverEnabled,
+    this.companionCharacter,
   });
 
   bool get isLegacy => source == BackupSource.legacy;
@@ -97,7 +105,15 @@ class ValidatedBackup {
 /// Backed up (all in [Storage.txBoxName]):
 ///   items, recurringItems, customExpenseCategories, customIncomeCategories,
 ///   selectedCurrency, selectedLanguage, selectedTheme, monthlyBudget,
-///   balance_carryover_enabled
+///   balance_carryover_enabled, companionCharacter (only when the user picked
+///   one; added in 1.6 as an optional schema-v1 field, see below)
+///
+/// Schema history:
+///   v1 – initial format. `data.settings.companionCharacter` is an optional,
+///        additive v1 field: older app versions ignore unknown settings keys,
+///        so new backups still restore there, and files without it restore
+///        here unchanged. An unknown or wrongly typed value is ignored rather
+///        than rejecting the whole backup.
 ///
 /// Deliberately NOT backed up:
 ///   lockEnabled / lockPasscode  – device security; a plaintext passcode must
@@ -128,6 +144,7 @@ class BackupService {
   static const String kTheme = 'selectedTheme';
   static const String kBudget = 'monthlyBudget';
   static const String kCarryover = 'balance_carryover_enabled';
+  static const String kCompanion = CompanionCharacter.storageKey;
 
   /// Every key restore may write. Nothing outside this set is modified.
   static const List<String> managedKeys = [
@@ -140,6 +157,7 @@ class BackupService {
     kTheme,
     kBudget,
     kCarryover,
+    kCompanion,
   ];
 
   // Defaults mirror the defaultValue used by the app's readers.
@@ -190,6 +208,7 @@ class BackupService {
           'theme': _readString(kTheme, defaultTheme),
           'monthlyBudget': _readNum(kBudget, 0.0),
           'balanceCarryoverEnabled': _box.get(kCarryover, defaultValue: true) == true,
+          'companionCharacter': ?_readCompanion(),
         },
       },
     };
@@ -303,6 +322,10 @@ class BackupService {
           BackupErrorCode.invalidValue, 'data.settings.monthlyBudget must be a finite number ≥ 0');
     }
 
+    // Optional; anything unrecognised falls back to "not in backup".
+    final companionRaw = settings['companionCharacter'];
+    final companion = CompanionCharacter.fromId(companionRaw)?.id;
+
     return ValidatedBackup(
       source: BackupSource.current,
       schemaVersion: version,
@@ -317,6 +340,7 @@ class BackupService {
       theme: theme,
       monthlyBudget: budget.toDouble(),
       balanceCarryoverEnabled: carryover,
+      companionCharacter: companion,
     );
   }
 
@@ -447,6 +471,7 @@ class BackupService {
       kTheme: ?b.theme,
       kBudget: ?b.monthlyBudget,
       kCarryover: ?b.balanceCarryoverEnabled,
+      kCompanion: ?b.companionCharacter,
     };
 
     final previous = <String, dynamic>{
@@ -513,6 +538,10 @@ class BackupService {
     final v = _box.get(key);
     return v is String ? v : fallback;
   }
+
+  /// Only an explicit, recognised choice is backed up; "follow the theme"
+  /// (no stored value) stays absent.
+  String? _readCompanion() => CompanionCharacter.fromId(_box.get(kCompanion))?.id;
 
   double _readNum(String key, double fallback) {
     final v = _box.get(key);

@@ -8,6 +8,32 @@ enum InsightType {
   recordStreak,
   recentActivity,
   getStarted,
+
+  /// One category this month so far vs the same days of last month.
+  categoryChange,
+
+  /// Last 7 days' spending clearly above the previous 4 weeks' average.
+  recentWeekHigher,
+
+  /// Month-to-date spending total (quick-question answer).
+  monthSpending,
+
+  /// A quick question that the data can't answer yet.
+  notEnoughData,
+}
+
+/// How the companion should feel about an insight. Drives the character's
+/// animation and the tone wrapper only; never changes the facts.
+enum InsightMood { neutral, positive, attention }
+
+/// The fixed quick questions. No free text.
+enum MoneyQuestion {
+  monthStatus('question_month_status'),
+  topCategory('question_top_category'),
+  compareLastMonth('question_compare_last_month');
+
+  const MoneyQuestion(this.labelKey);
+  final String labelKey;
 }
 
 /// A money amount in one currency. Rendered with that currency's format.
@@ -69,6 +95,7 @@ class Insight {
   /// [currency]; the UI then names the currency.
   final bool currencyScoped;
   final DateTime generatedAt;
+  final InsightMood mood;
 
   const Insight({
     required this.id,
@@ -82,6 +109,7 @@ class Insight {
     this.currency,
     this.currencyScoped = false,
     required this.generatedAt,
+    this.mood = InsightMood.neutral,
   });
 
   @override
