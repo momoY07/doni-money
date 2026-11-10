@@ -54,6 +54,12 @@ class SettingsPage extends StatefulWidget {
   final CompanionCharacter companionCharacter;
   final ValueChanged<CompanionCharacter> onCompanionChanged;
 
+  /// AI Conversation consent (local only). Turning it on asks for consent
+  /// first (handled by the parent); turning it off is immediate.
+  final bool aiEnabled;
+  final ValueChanged<bool> onAiEnabledChanged;
+  final VoidCallback onShowAiSharedInfo;
+
   const SettingsPage({
     super.key,
     required this.language,
@@ -85,6 +91,9 @@ class SettingsPage extends StatefulWidget {
     required this.onOpenPaywall,
     required this.companionCharacter,
     required this.onCompanionChanged,
+    required this.aiEnabled,
+    required this.onAiEnabledChanged,
+    required this.onShowAiSharedInfo,
   });
 
   @override
@@ -464,6 +473,44 @@ class _SettingsPageState extends State<SettingsPage> {
             tileBg: _isCA ? const Color(0xFF1A1A3A) : (_isMB ? const Color(0xFF2A2A2A) : _softBg),
             textColor: dark ? Colors.white : _textMain,
             onSelect: (c) => isPremium ? widget.onCompanionChanged(c) : onOpenPaywall(),
+          ),
+          const SizedBox(height: 10),
+          Divider(height: 1, color: _isCA ? const Color(0xFF2A2A5A) : (_isMB ? const Color(0xFF333333) : _line)),
+          SwitchListTile.adaptive(
+            key: const ValueKey('settings_ai_switch'),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            title: Text(
+              t('ai_settings_title', language),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: dark ? Colors.white : _textMain,
+              ),
+            ),
+            subtitle: Text(
+              !isPremium
+                  ? t('premium_locked_hint', language)
+                  : (widget.aiEnabled ? t('ai_settings_on', language) : t('ai_settings_off', language)),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _isCA ? const Color(0xFF6B6B9A) : (_isMB ? const Color(0xFF888888) : _textSub),
+              ),
+            ),
+            value: isPremium && widget.aiEnabled,
+            onChanged: (v) => isPremium ? widget.onAiEnabledChanged(v) : onOpenPaywall(),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('settings_ai_shared'),
+              style: TextButton.styleFrom(
+                foregroundColor: _isCA ? const Color(0xFF9B9BFF) : (_isMB ? Colors.white70 : _textMain),
+              ),
+              onPressed: widget.onShowAiSharedInfo,
+              icon: const Icon(Icons.info_outline_rounded, size: 18),
+              label: Text(t('ai_whats_shared', language)),
+            ),
           ),
         ],
       ),

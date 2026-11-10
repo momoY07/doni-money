@@ -15,8 +15,11 @@ enum CompanionPose { idle, notice, speaking, happy }
 
 /// The pose for a new line: positive facts get a small happy hop,
 /// heads-up facts a look of attention, everything else plain speaking.
-CompanionPose poseForInsight(Insight? insight) {
-  switch (insight?.mood) {
+CompanionPose poseForInsight(Insight? insight) => poseForMood(insight?.mood);
+
+/// Same mapping for any mood source (local insights or AI replies).
+CompanionPose poseForMood(InsightMood? mood) {
+  switch (mood) {
     case InsightMood.positive:
       return CompanionPose.happy;
     case InsightMood.attention:
@@ -51,6 +54,9 @@ class CompanionCard extends StatefulWidget {
   /// Answers a quick question from local data. Null for free users.
   final Insight Function(MoneyQuestion question)? answerFor;
 
+  /// Opens the AI conversation (Premium). Null hides the "Ask AI" chip.
+  final VoidCallback? onAskAi;
+
   const CompanionCard({
     super.key,
     required this.language,
@@ -62,6 +68,7 @@ class CompanionCard extends StatefulWidget {
     required this.onShown,
     required this.onOpenPaywall,
     this.answerFor,
+    this.onAskAi,
   });
 
   @override
@@ -363,6 +370,18 @@ class _CompanionCardState extends State<CompanionCard> with SingleTickerProvider
                                     textColor: textColor,
                                     onTap: () => _ask(q),
                                   ),
+                                if (widget.onAskAi != null)
+                                  _QuestionChip(
+                                    key: const ValueKey('companion_ask_ai'),
+                                    label: '✨ ${t('ai_ask_ai', widget.language)}',
+                                    background: bubbleBg,
+                                    border: accent,
+                                    textColor: accent,
+                                    onTap: () {
+                                      setState(() => _questionsOpen = false);
+                                      widget.onAskAi!();
+                                    },
+                                  ),
                               ],
                             ),
                           )
@@ -504,6 +523,7 @@ class _QuestionChip extends StatelessWidget {
   final VoidCallback onTap;
 
   const _QuestionChip({
+    super.key,
     required this.label,
     required this.background,
     required this.border,

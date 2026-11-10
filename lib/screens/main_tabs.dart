@@ -30,6 +30,12 @@ import '../services/backup_file_transfer.dart';
 import '../services/icloud_backup_service.dart';
 import '../services/icloud_backup_storage.dart';
 import '../utils/icloud_backup_text.dart';
+import '../ai/ai_chat_controller.dart';
+import '../ai/ai_companion_service.dart';
+import '../ai/ai_config.dart';
+import '../ai/ai_context.dart';
+import '../ai/ai_prefs.dart';
+import '../ai/ai_sheets.dart';
 import '../companion/companion_card.dart';
 import '../companion/companion_character.dart';
 import '../companion/companion_data.dart';
@@ -58,6 +64,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
   /// Companion picked by the user; null = follow the theme's mascot.
   CompanionCharacter? _companionChoice;
   final _companionPrefs = CompanionPrefs(Storage.txBox);
+  final _aiPrefs = AiPrefs(Storage.txBox);
 
   CompanionCharacter get _companion =>
       _companionChoice ?? CompanionCharacter.defaultForTheme(selectedTheme);
@@ -391,6 +398,59 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
 
   // ───────────────────────── Companion (Premium) ─────────────────────────
 
+  InsightInput _insightInput() => buildInsightInput(
+        transactions: context.read<TxRepo>().items.map(TxItem.fromMap).toList(),
+        recurring: RecurringItem.loadAll(),
+        monthlyBudget: _monthlyBudget,
+        selectedCurrency: selectedCurrency,
+        now: DateTime.now(),
+      );
+
+  /// Premium → consent (first time) → chat. Free users get the paywall.
+  /// Declining consent sends nothing; local insights keep working.
+  Future<void> openAskAi() async {
+    final purchases = context.read<PurchaseService>();
+    if (!purchases.isPremium) {
+      openPaywall();
+      return;
+    }
+    if (!_aiPrefs.enabled) {
+      final ok = await showAiConsentSheet(context, selectedLanguage);
+      if (!ok || !mounted) return;
+      await _aiPrefs.setEnabled(true);
+      setState(() {});
+    }
+    if (!mounted) return;
+    final controller = AiChatController(
+      remote: RemoteAiCompanionService(
+        endpoint: AiConfig.endpoint,
+        installId: _aiPrefs.installId(),
+      ),
+      local: LocalAiCompanionService(input: _insightInput),
+      isPremium: () => purchases.isPremium,
+      isEnabled: () => _aiPrefs.enabled,
+      buildContext: (topic) => const AiFinancialContextBuilder()
+          .build(input: _insightInput(), topic: topic, language: selectedLanguage),
+      language: () => selectedLanguage,
+      character: () => _companion,
+    );
+    await showAiChatSheet(
+      context,
+      controller: controller,
+      language: selectedLanguage,
+      character: _companion,
+    );
+  }
+
+  Future<void> _setAiEnabled(bool on) async {
+    if (on && !_aiPrefs.enabled) {
+      final ok = await showAiConsentSheet(context, selectedLanguage);
+      if (!ok) return;
+    }
+    await _aiPrefs.setEnabled(on);
+    if (mounted) setState(() {});
+  }
+
   Widget _buildCompanion(List<TxItem> tx) {
     final isPremium = context.watch<PurchaseService>().isPremium;
     // Insights are only computed for Premium users; all data stays local.
@@ -413,6 +473,7 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
       onShown: _companionPrefs.setLastShownId,
       onOpenPaywall: openPaywall,
       answerFor: isPremium ? (q) => engine.answer(q, input()) : null,
+      onAskAi: isPremium ? openAskAi : null,
     );
   }
 
@@ -1097,6 +1158,9 @@ class _MainTabsState extends State<MainTabs> with WidgetsBindingObserver {
         onOpenPaywall: openPaywall,
         companionCharacter: _companion,
         onCompanionChanged: _setCompanion,
+        aiEnabled: _aiPrefs.enabled,
+        onAiEnabledChanged: _setAiEnabled,
+        onShowAiSharedInfo: () => showAiSharedInfoSheet(context, selectedLanguage),
       ),
     ];
 

@@ -1,0 +1,14 @@
+{
+  "name": "doni-money-ai-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Doni Money AI companion proxy: validates a small aggregated request, calls the OpenAI Responses API with the server-held key, returns a small validated reply.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  }
+}
